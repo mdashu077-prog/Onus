@@ -1,7 +1,9 @@
+import { Link } from 'react-router-dom'
+
 const recruiters = [
-  { name: 'HR Manager - Google', company: 'Google', bio: 'Hiring talent for Google Cloud team', rating: '4.9/5' },
-  { name: 'Tech Lead - Microsoft', company: 'Microsoft', bio: 'Recruiting engineers for Azure projects', rating: '4.8/5' },
-  { name: 'HR Specialist - Amazon', company: 'Amazon', bio: 'Dedicated to building Amazon\'s engineering team', rating: '4.9/5' },
+  { slug: 'google', name: 'HR Manager - Google', company: 'Google', bio: 'Hiring talent for Google Cloud team', rating: '4.9/5' },
+  { slug: 'microsoft', name: 'Tech Lead - Microsoft', company: 'Microsoft', bio: 'Recruiting engineers for Azure projects', rating: '4.8/5' },
+  { slug: 'amazon', name: 'HR Specialist - Amazon', company: 'Amazon', bio: 'Dedicated to building Amazon\'s engineering team', rating: '4.9/5' },
 ]
 
 export default function Recruiters() {
@@ -23,12 +25,14 @@ export default function Recruiters() {
                 </div>
                 <span className="text-sm font-semibold text-yellow-500">⭐ {recruiter.rating}</span>
               </div>
-              <h3 className="text-lg font-semibold text-secondary">{recruiter.name}</h3>
+              <Link to={`/recruiters/${recruiter.slug}`} className="block">
+                <h3 className="text-lg font-semibold text-secondary">{recruiter.name}</h3>
+              </Link>
               <p className="mt-1 text-sm text-slate-500">{recruiter.company}</p>
               <p className="mt-3 text-sm text-slate-700">{recruiter.bio}</p>
-              <button className="mt-4 w-full rounded-full bg-primary px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-600">
-                Connect
-              </button>
+              <Link to={`/recruiters/${recruiter.slug}`} className="mt-4 block w-full rounded-full bg-primary px-4 py-2 text-center text-sm font-semibold text-white transition hover:bg-blue-600">
+                View Profile
+              </Link>
             </div>
           ))}
         </div>

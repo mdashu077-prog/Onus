@@ -1,10 +1,12 @@
+import { Link } from 'react-router-dom'
+
 const companies = [
-  { name: 'Google', openings: '45', location: 'Bangalore' },
-  { name: 'Microsoft', openings: '32', location: 'Hyderabad' },
-  { name: 'Amazon', openings: '58', location: 'Bangalore' },
-  { name: 'Infosys', openings: '120', location: 'Pune' },
-  { name: 'TCS', openings: '200+', location: 'Bangalore' },
-  { name: 'Accenture', openings: '89', location: 'Mumbai' },
+  { slug: 'google', name: 'Google', openings: '45', location: 'Bangalore' },
+  { slug: 'microsoft', name: 'Microsoft', openings: '32', location: 'Hyderabad' },
+  { slug: 'amazon', name: 'Amazon', openings: '58', location: 'Bangalore' },
+  { slug: 'infosys', name: 'Infosys', openings: '120', location: 'Pune' },
+  { slug: 'tcs', name: 'TCS', openings: '200+', location: 'Bangalore' },
+  { slug: 'accenture', name: 'Accenture', openings: '89', location: 'Mumbai' },
 ]
 
 export default function Companies() {
@@ -28,11 +30,13 @@ export default function Companies() {
                   {company.openings} jobs
                 </span>
               </div>
-              <h3 className="text-xl font-semibold text-secondary">{company.name}</h3>
+              <Link to={`/companies/${company.slug}`} className="block">
+                <h3 className="text-xl font-semibold text-secondary">{company.name}</h3>
+              </Link>
               <p className="mt-2 text-sm text-slate-500">📍 {company.location}</p>
-              <button className="mt-4 w-full rounded-full border border-primary px-4 py-2 text-sm font-semibold text-primary transition hover:bg-primary/10">
-                View Jobs
-              </button>
+              <Link to={`/companies/${company.slug}`} className="mt-4 block w-full rounded-full border border-primary px-4 py-2 text-center text-sm font-semibold text-primary transition hover:bg-primary/10">
+                View Profile
+              </Link>
             </div>
           ))}
         </div>

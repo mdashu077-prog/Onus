@@ -1,6 +1,8 @@
 import { useState } from 'react'
 
-export default function EmployerDashboard() {
+const menuItems = ['Dashboard', 'Post Job', 'Manage Jobs', 'Applicants', 'Company Profile']
+
+export default function EmployerDashboard({ auth }) {
   const [posts, setPosts] = useState([])
   const [form, setForm] = useState({ title: '', company: '', location: '', salary: '', type: 'Full time', description: '' })
 
@@ -23,8 +25,17 @@ export default function EmployerDashboard() {
           <div className="space-y-4">
             <div>
               <p className="text-sm uppercase tracking-[0.28em] text-primary">Employer Dashboard</p>
-              <h1 className="mt-3 text-4xl font-semibold text-secondary">Post a job and attract top talent</h1>
+              <h1 className="mt-3 text-4xl font-semibold text-secondary">Welcome back, {auth?.name || 'recruiter'}!</h1>
               <p className="mt-4 max-w-2xl text-slate-600">Create a job posting with details, location, salary and application instructions.</p>
+            </div>
+            <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-[0_30px_60px_rgba(15,23,42,0.08)]">
+              <div className="grid gap-3 sm:grid-cols-2">
+                {menuItems.map((item) => (
+                  <div key={item} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-medium text-slate-700">
+                    {item}
+                  </div>
+                ))}
+              </div>
             </div>
             <form onSubmit={handleSubmit} className="space-y-5 rounded-[2rem] bg-white p-8 shadow-[0_30px_60px_rgba(15,23,42,0.08)]">
               <div className="grid gap-4 lg:grid-cols-2">
