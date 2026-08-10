@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useNavigate, Link, useLocation } from 'react-router-dom'
+import { registerUser } from '../services/api'
 
 export default function Register({ onLogin }) {
   const [role, setRole] = useState('job-seeker')
@@ -13,10 +14,29 @@ export default function Register({ onLogin }) {
     return location.search.includes('recruiter') ? 'recruiter' : role
   }, [location.search, role])
 
-  function handleSubmit(e) {
+  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
+
+  async function handleSubmit(e) {
     e.preventDefault()
-    onLogin?.({ name, email, role: selectedRole === 'recruiter' ? 'recruiter' : 'job-seeker' })
-    navigate(selectedRole === 'recruiter' ? '/employer' : '/employee')
+    setError('')
+    setLoading(true)
+
+    try {
+      const user = await registerUser({
+        name,
+        email,
+        password,
+        role: selectedRole === 'recruiter' ? 'recruiter' : 'job-seeker',
+      })
+
+      onLogin?.(user.user)
+      navigate(selectedRole === 'recruiter' ? '/employer' : '/employee')
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -80,11 +100,13 @@ export default function Register({ onLogin }) {
               </span>
             </label>
 
+            {error && <p className="text-sm text-red-600">{error}</p>}
             <button
               type="submit"
+              disabled={loading}
               className="mt-4 w-full rounded-lg bg-[#2563EB] px-4 py-3 text-sm font-semibold text-white shadow-sm transition-all duration-200 ease-in-out hover:bg-[#1d4ed8] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2563EB] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:bg-slate-400 disabled:text-slate-200"
             >
-              Create Account
+              {loading ? 'Creating Account…' : 'Create Account'}
             </button>
           </form>
 

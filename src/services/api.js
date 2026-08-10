@@ -1,3 +1,30 @@
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || ''
+
+async function apiRequest(path, body) {
+  const response = await fetch(`${BASE_URL}${path}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(body),
+  })
+
+  const data = await response.json()
+  if (!response.ok) {
+    throw new Error(data.message || 'Server error')
+  }
+
+  return data
+}
+
+export function registerUser(payload) {
+  return apiRequest('/api/register', payload)
+}
+
+export function loginUser(payload) {
+  return apiRequest('/api/login', payload)
+}
+
 const sampleJobs = [
   { id: 1, title: 'Frontend Developer', company: 'Acme Co', description: 'React developer needed' },
   { id: 2, title: 'Backend Developer', company: 'Beta LLC', description: 'Node.js experience' },

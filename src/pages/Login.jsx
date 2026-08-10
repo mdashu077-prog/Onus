@@ -1,11 +1,14 @@
 import { useMemo, useState } from 'react'
 import { useNavigate, Link, useLocation } from 'react-router-dom'
+import { loginUser } from '../services/api'
 
 export default function Login({ onLogin }) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [role, setRole] = useState('job-seeker')
+  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
   const location = useLocation()
 
@@ -13,10 +16,25 @@ export default function Login({ onLogin }) {
     return location.search.includes('recruiter') ? 'recruiter' : role
   }, [location.search, role])
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault()
-    onLogin?.({ email, role: selectedRole === 'recruiter' ? 'recruiter' : 'job-seeker', name: email.split('@')[0] || 'User' })
-    navigate(selectedRole === 'recruiter' ? '/employer' : '/employee')
+    setError('')
+    setLoading(true)
+
+    try {
+      const response = await loginUser({
+        email,
+        password,
+        role: selectedRole === 'recruiter' ? 'recruiter' : 'job-seeker',
+      })
+
+      onLogin?.(response.user)
+      navigate(selectedRole === 'recruiter' ? '/employer' : '/employee')
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -77,7 +95,10 @@ export default function Login({ onLogin }) {
                 <Link to="/forgot-password" className="text-slate-600 hover:underline">Forgot Password?</Link>
               </div>
 
-              <button className="w-full bg-[#2563EB] text-white py-3 rounded-full text-lg font-semibold tracking-wider shadow-inner transition-colors duration-200 hover:bg-[#60A5FA]" type="submit">Sign in</button>
+              {error && <p className="text-sm text-red-600">{error}</p>}
+              <button className="w-full bg-[#2563EB] text-white py-3 rounded-full text-lg font-semibold tracking-wider shadow-inner transition-colors duration-200 hover:bg-[#60A5FA] disabled:opacity-60" type="submit" disabled={loading}>
+                {loading ? 'Signing in…' : 'Sign in'}
+              </button>
 
               <p className="text-center text-sm text-slate-500">New here?
                 <Link to="/register" className="text-blue-600 ml-1">Sign Up</Link>

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { NavLink, useNavigate } from 'react-router-dom'
+import { Link, NavLink, useNavigate } from 'react-router-dom'
 import { Menu, User, Bell, MoreVertical } from 'lucide-react'
 
 const navItems = [
@@ -20,6 +20,7 @@ export default function Navbar({ auth, onLogout }) {
   const headerRef = useRef(null)
   const notificationsRef = useRef(null)
   const profileRef = useRef(null)
+  const mobileProfileRef = useRef(null)
   const moreRef = useRef(null)
   const navigate = useNavigate()
 
@@ -31,7 +32,12 @@ export default function Navbar({ auth, onLogout }) {
       if (notificationsRef.current && !notificationsRef.current.contains(event.target)) {
         setNotificationsOpen(false)
       }
-      if (profileRef.current && !profileRef.current.contains(event.target)) {
+      if (
+        profileRef.current &&
+        !profileRef.current.contains(event.target) &&
+        mobileProfileRef.current &&
+        !mobileProfileRef.current.contains(event.target)
+      ) {
         setProfileOpen(false)
       }
       if (moreRef.current && !moreRef.current.contains(event.target)) {
@@ -109,8 +115,8 @@ export default function Navbar({ auth, onLogout }) {
                 <div className="absolute right-0 top-12 z-50 w-56 rounded-2xl border border-slate-200 bg-white p-2 shadow-xl">
                   {!auth ? (
                     <>
-                      <button type="button" onClick={() => { closeAllMenus(); navigate('/login') }} className="block w-full rounded-xl px-3 py-2 text-left text-sm font-medium text-slate-700 transition hover:bg-slate-50">Login</button>
-                      <button type="button" onClick={() => { closeAllMenus(); navigate('/register') }} className="mt-1 block w-full rounded-xl px-3 py-2 text-left text-sm font-medium text-slate-700 transition hover:bg-slate-50">Create Account</button>
+                      <Link to="/login" onClick={closeAllMenus} className="block w-full rounded-xl px-3 py-2 text-left text-sm font-medium text-slate-700 transition hover:bg-slate-50">Login</Link>
+                      <Link to="/register" onClick={closeAllMenus} className="mt-1 block w-full rounded-xl px-3 py-2 text-left text-sm font-medium text-slate-700 transition hover:bg-slate-50">Create Account</Link>
                     </>
                   ) : (
                     <>
@@ -158,7 +164,7 @@ export default function Navbar({ auth, onLogout }) {
             </NavLink>
           </div>
 
-          <div ref={profileRef} className="relative">
+          <div ref={mobileProfileRef} className="relative">
             <button type="button" className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white transition hover:bg-white/20" aria-label="Profile menu" onClick={() => { setProfileOpen((prev) => !prev); setMenuOpen(false) }}>
               <User className="h-5 w-5" />
             </button>
@@ -166,8 +172,8 @@ export default function Navbar({ auth, onLogout }) {
               <div className="absolute right-0 top-12 z-50 w-56 rounded-2xl border border-slate-200 bg-white p-2 shadow-xl">
                 {!auth ? (
                   <>
-                    <button type="button" onClick={() => { closeAllMenus(); navigate('/login') }} className="block w-full rounded-xl px-3 py-2 text-left text-sm font-medium text-slate-700 transition hover:bg-slate-50">Login</button>
-                    <button type="button" onClick={() => { closeAllMenus(); navigate('/register') }} className="mt-1 block w-full rounded-xl px-3 py-2 text-left text-sm font-medium text-slate-700 transition hover:bg-slate-50">Create Account</button>
+                    <Link to="/login" onClick={closeAllMenus} className="block w-full rounded-xl px-3 py-2 text-left text-sm font-medium text-slate-700 transition hover:bg-slate-50">Login</Link>
+                    <Link to="/register" onClick={closeAllMenus} className="mt-1 block w-full rounded-xl px-3 py-2 text-left text-sm font-medium text-slate-700 transition hover:bg-slate-50">Create Account</Link>
                   </>
                 ) : (
                   <>
