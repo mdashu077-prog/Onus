@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import JobCard from '../components/JobCard'
-import { fetchJobs } from '../services/api'
 
 const fresherJobs = [
   { id: 1, title: 'Frontend Developer', company: 'Google', salary: '₹4-6 LPA', description: 'Build responsive web apps with React. No experience required.' },

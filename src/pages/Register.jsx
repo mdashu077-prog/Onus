@@ -30,7 +30,7 @@ export default function Register({ onLogin }) {
         role: selectedRole === 'recruiter' ? 'recruiter' : 'job-seeker',
       })
 
-      onLogin?.(user.user)
+      onLogin?.(user)
       navigate(selectedRole === 'recruiter' ? '/employer' : '/employee')
     } catch (err) {
       setError(err.message)

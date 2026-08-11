@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import Navbar from './components/Navbar'
 import Footer from './components/Footer'
+import ProtectedRoute from './components/ProtectedRoute'
 import Home from './pages/Home'
 import Jobs from './pages/Jobs'
 import FresherJobs from './pages/FresherJobs'
@@ -62,10 +63,38 @@ function App() {
           <Route path="/login" element={<Login onLogin={handleLogin} />} />
           <Route path="/register" element={<Register onLogin={handleLogin} />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
-          <Route path="/employee" element={auth?.role === 'job-seeker' ? <EmployeeDashboard auth={auth} /> : <Navigate to="/login" replace />} />
-          <Route path="/employer" element={auth?.role === 'recruiter' ? <EmployerDashboard auth={auth} /> : <Navigate to="/login" replace />} />
-          <Route path="/profile" element={auth ? <Profile auth={auth} /> : <Navigate to="/login" replace />} />
-          <Route path="/settings" element={auth ? <Settings auth={auth} /> : <Navigate to="/login" replace />} />
+          <Route
+            path="/employee"
+            element={
+              <ProtectedRoute auth={auth} requiredRole="job-seeker">
+                <EmployeeDashboard auth={auth} />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/employer"
+            element={
+              <ProtectedRoute auth={auth} requiredRole="recruiter">
+                <EmployerDashboard auth={auth} />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/profile"
+            element={
+              <ProtectedRoute auth={auth}>
+                <Profile auth={auth} />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/settings"
+            element={
+              <ProtectedRoute auth={auth}>
+                <Settings auth={auth} />
+              </ProtectedRoute>
+            }
+          />
           <Route path="/referral-earn" element={<ReferralEarn auth={auth} />} />
           <Route path="/about" element={<InfoPage title="About" />} />
           <Route path="/contact" element={<InfoPage title="Contact" />} />

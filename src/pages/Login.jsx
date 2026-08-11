@@ -28,7 +28,7 @@ export default function Login({ onLogin }) {
         role: selectedRole === 'recruiter' ? 'recruiter' : 'job-seeker',
       })
 
-      onLogin?.(response.user)
+      onLogin?.(response)
       navigate(selectedRole === 'recruiter' ? '/employer' : '/employee')
     } catch (err) {
       setError(err.message)

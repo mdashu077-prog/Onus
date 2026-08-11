@@ -1,9 +1,15 @@
 import { useState } from 'react'
 import JobCard from '../components/JobCard'
-import { fetchJobs } from '../services/api'
+
+const jobList = [
+  { id: 1, title: 'Frontend Developer', company: 'Google', salary: '₹8-12 LPA', description: 'Build responsive web apps with React.' },
+  { id: 2, title: 'Backend Developer', company: 'Microsoft', salary: '₹10-14 LPA', description: 'Develop scalable API services.' },
+  { id: 3, title: 'Python Developer', company: 'Amazon', salary: '₹9-13 LPA', description: 'Work on data-driven backend systems.' },
+  { id: 4, title: 'UI/UX Designer', company: 'Infosys', salary: '₹5-8 LPA', description: 'Design intuitive user experiences.' },
+]
 
 export default function Jobs() {
-  const [jobs] = useState(() => fetchJobs())
+  const [jobs] = useState(() => jobList)
 
   function handleApply(job) {
     alert(`Applied to ${job.title} at ${job.company}`)
