@@ -1,8 +1,8 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, Link, useLocation } from 'react-router-dom'
 import { loginUser } from '../services/api'
 
-export default function Login({ onLogin }) {
+export default function Login({ auth, onLogin }) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -15,6 +15,12 @@ export default function Login({ onLogin }) {
   const selectedRole = useMemo(() => {
     return location.search.includes('recruiter') ? 'recruiter' : role
   }, [location.search, role])
+
+  useEffect(() => {
+    if (auth) {
+      navigate(auth.role === 'recruiter' ? '/employer' : '/employee')
+    }
+  }, [auth, navigate])
 
   async function handleSubmit(e) {
     e.preventDefault()

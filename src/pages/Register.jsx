@@ -1,8 +1,8 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, Link, useLocation } from 'react-router-dom'
 import { registerUser } from '../services/api'
 
-export default function Register({ onLogin }) {
+export default function Register({ auth, onLogin }) {
   const [role, setRole] = useState('job-seeker')
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
@@ -16,6 +16,12 @@ export default function Register({ onLogin }) {
 
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    if (auth) {
+      navigate(auth.role === 'recruiter' ? '/employer' : '/employee')
+    }
+  }, [auth, navigate])
 
   async function handleSubmit(e) {
     e.preventDefault()

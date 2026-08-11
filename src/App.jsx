@@ -60,8 +60,8 @@ function App() {
           <Route path="/companies/:companySlug" element={<CompanyProfile />} />
           <Route path="/recruiters" element={<Recruiters />} />
           <Route path="/recruiters/:recruiterSlug" element={<RecruiterProfile />} />
-          <Route path="/login" element={<Login onLogin={handleLogin} />} />
-          <Route path="/register" element={<Register onLogin={handleLogin} />} />
+          <Route path="/login" element={<Login auth={auth} onLogin={handleLogin} />} />
+          <Route path="/register" element={<Register auth={auth} onLogin={handleLogin} />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route
             path="/employee"
