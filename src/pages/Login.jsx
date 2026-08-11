@@ -22,26 +22,46 @@ export default function Login({ auth, onLogin }) {
     }
   }, [auth, navigate])
 
-  async function handleSubmit(e) {
-    e.preventDefault()
-    setError('')
-    setLoading(true)
+ async function handleSubmit(e) {
+  e.preventDefault()
+  setError('')
+  setLoading(true)
 
-    try {
-      const response = await loginUser({
-        email,
-        password,
-        role: selectedRole === 'recruiter' ? 'recruiter' : 'job-seeker',
-      })
+  try {
+    const backendRole =
+      selectedRole === 'recruiter'
+        ? 'RECRUITER'
+        : 'JOB_SEEKER'
 
-      onLogin?.(response)
-      navigate(selectedRole === 'recruiter' ? '/employer' : '/employee')
-    } catch (err) {
-      setError(err.message)
-    } finally {
-      setLoading(false)
-    }
+    const response = await loginUser({
+      email,
+      password,
+      role: backendRole,
+    })
+
+    // JWT token save
+    localStorage.setItem('onus_token', response.token)
+
+    // Login successful
+    onLogin?.({
+      email,
+      role: selectedRole,
+      token: response.token,
+    })
+
+    // Dashboard redirect
+    navigate(
+      selectedRole === 'recruiter'
+        ? '/employer'
+        : '/employee'
+    )
+
+  } catch (err) {
+    setError(err.message || 'Login failed')
+  } finally {
+    setLoading(false)
   }
+}
 
   return (
     <section className="min-h-screen flex items-center py-12">
