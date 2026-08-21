@@ -11,6 +11,7 @@ const tabs = [
 export default function Auth({ auth, onLogin }) {
   const location = useLocation()
   const navigate = useNavigate()
+
   const initialTab = useMemo(() => {
     if (location.pathname.includes('/register')) return 'register'
     if (location.pathname.includes('/referral-earn')) return 'referral'
@@ -18,17 +19,22 @@ export default function Auth({ auth, onLogin }) {
   }, [location.pathname])
 
   const [activeTab, setActiveTab] = useState(initialTab)
+
   const [loginEmail, setLoginEmail] = useState('')
   const [loginPassword, setLoginPassword] = useState('')
   const [loginRole, setLoginRole] = useState('job-seeker')
+
   const [registerName, setRegisterName] = useState('')
   const [registerEmail, setRegisterEmail] = useState('')
   const [registerPassword, setRegisterPassword] = useState('')
   const [registerRole, setRegisterRole] = useState('job-seeker')
+
   const [showPassword, setShowPassword] = useState(false)
   const [rememberMe, setRememberMe] = useState(false)
+
   const [loginError, setLoginError] = useState('')
   const [registerError, setRegisterError] = useState('')
+
   const [loginLoading, setLoginLoading] = useState(false)
   const [registerLoading, setRegisterLoading] = useState(false)
 
@@ -36,14 +42,13 @@ export default function Auth({ auth, onLogin }) {
     setActiveTab(initialTab)
   }, [initialTab])
 
-  useEffect(() => {
-    if (auth) {
-      navigate(auth.role === 'recruiter' ? '/employer' : '/employee')
-    }
-  }, [auth, navigate])
+  // IMPORTANT:
+  // Automatic redirect based on `auth` has intentionally been removed.
+  // The user will only be redirected after successful login/register.
 
   async function handleLoginSubmit(event) {
     event.preventDefault()
+
     setLoginError('')
     setLoginLoading(true)
 
@@ -53,10 +58,19 @@ export default function Auth({ auth, onLogin }) {
         password: loginPassword,
         role: loginRole,
       })
+
       onLogin?.(response)
-      navigate(loginRole === 'recruiter' ? '/employer' : '/employee')
+
+      // Redirect only after successful login
+      if (loginRole === 'recruiter') {
+        navigate('/employer')
+      } else {
+        navigate('/employee')
+      }
     } catch (error) {
-      setLoginError(error.message)
+      setLoginError(
+        error?.message || 'Login failed. Please check your email and password.'
+      )
     } finally {
       setLoginLoading(false)
     }
@@ -64,6 +78,7 @@ export default function Auth({ auth, onLogin }) {
 
   async function handleRegisterSubmit(event) {
     event.preventDefault()
+
     setRegisterError('')
     setRegisterLoading(true)
 
@@ -74,10 +89,19 @@ export default function Auth({ auth, onLogin }) {
         password: registerPassword,
         role: registerRole,
       })
+
       onLogin?.(response)
-      navigate(registerRole === 'recruiter' ? '/employer' : '/employee')
+
+      // Redirect only after successful registration
+      if (registerRole === 'recruiter') {
+        navigate('/employer')
+      } else {
+        navigate('/employee')
+      }
     } catch (error) {
-      setRegisterError(error.message)
+      setRegisterError(
+        error?.message || 'Registration failed. Please try again.'
+      )
     } finally {
       setRegisterLoading(false)
     }
@@ -88,16 +112,26 @@ export default function Auth({ auth, onLogin }) {
       <div className="container-center max-w-6xl">
         <div className="rounded-[2rem] border border-white/10 bg-[#0d1788f2] p-1 shadow-[0_35px_80px_rgba(15,23,42,0.24)] backdrop-blur-xl">
           <div className="rounded-[1.9rem] bg-slate-950/90 p-8">
+
             <div className="mb-8 max-w-2xl">
-              <p className="text-sm font-semibold uppercase tracking-[0.3em] text-primary/90">ONUS Authentication</p>
-              <h1 className="mt-4 text-4xl font-semibold text-white sm:text-5xl">Access jobs, referrals, and recruiter opportunities.</h1>
+              <p className="text-sm font-semibold uppercase tracking-[0.3em] text-primary/90">
+                ONUS Authentication
+              </p>
+
+              <h1 className="mt-4 text-4xl font-semibold text-white sm:text-5xl">
+                Access jobs, referrals, and recruiter opportunities.
+              </h1>
+
               <p className="mt-4 text-slate-300/90 leading-8">
-                Choose how you want to continue with ONUS. Login, register, or explore referral rewards from a single polished experience.
+                Choose how you want to continue with ONUS. Login, register,
+                or explore referral rewards from a single polished experience.
               </p>
             </div>
 
+            {/* TABS */}
             <div className="rounded-[1.5rem] bg-slate-900/80 p-2 shadow-inner">
               <div className="grid grid-cols-3 gap-2 rounded-[1.25rem] bg-slate-950/80 p-1">
+
                 {tabs.map((tab) => (
                   <button
                     key={tab.id}
@@ -112,20 +146,34 @@ export default function Auth({ auth, onLogin }) {
                     {tab.label}
                   </button>
                 ))}
+
               </div>
             </div>
 
             <div className="mt-8 rounded-[1.5rem] bg-slate-950/95 p-8 shadow-[0_30px_60px_rgba(15,23,42,0.16)]">
+
+              {/* ===================================================== */}
+              {/* LOGIN */}
+              {/* ===================================================== */}
+
               {activeTab === 'login' && (
                 <div>
+
                   <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                     <div>
-                      <p className="text-sm font-semibold uppercase tracking-[0.24em] text-primary">Login</p>
-                      <h2 className="mt-3 text-3xl font-semibold text-white">Sign in to your ONUS account</h2>
+                      <p className="text-sm font-semibold uppercase tracking-[0.24em] text-primary">
+                        Login
+                      </p>
+
+                      <h2 className="mt-3 text-3xl font-semibold text-white">
+                        Sign in to your ONUS account
+                      </h2>
                     </div>
                   </div>
 
+                  {/* LOGIN ROLE */}
                   <div className="mb-6 grid gap-3 sm:grid-cols-2">
+
                     <button
                       type="button"
                       onClick={() => setLoginRole('job-seeker')}
@@ -137,6 +185,7 @@ export default function Auth({ auth, onLogin }) {
                     >
                       I&apos;m a Job Seeker
                     </button>
+
                     <button
                       type="button"
                       onClick={() => setLoginRole('recruiter')}
@@ -148,50 +197,77 @@ export default function Auth({ auth, onLogin }) {
                     >
                       I&apos;m a Recruiter
                     </button>
+
                   </div>
 
                   <form onSubmit={handleLoginSubmit} className="space-y-5">
+
+                    {/* EMAIL */}
                     <div>
-                      <label className="block text-sm font-medium text-slate-300 mb-2">Email</label>
+                      <label className="block text-sm font-medium text-slate-300 mb-2">
+                        Email
+                      </label>
+
                       <input
                         type="email"
                         value={loginEmail}
                         onChange={(event) => setLoginEmail(event.target.value)}
                         placeholder="you@example.com"
+                        required
                         className="w-full rounded-full border border-slate-700 bg-slate-900/80 px-6 py-4 text-white outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
                       />
                     </div>
 
+                    {/* PASSWORD */}
                     <div>
-                      <label className="block text-sm font-medium text-slate-300 mb-2">Password</label>
+                      <label className="block text-sm font-medium text-slate-300 mb-2">
+                        Password
+                      </label>
+
                       <div className="relative">
+
                         <input
                           type={showPassword ? 'text' : 'password'}
                           value={loginPassword}
-                          onChange={(event) => setLoginPassword(event.target.value)}
+                          onChange={(event) =>
+                            setLoginPassword(event.target.value)
+                          }
                           placeholder="••••••••"
+                          required
                           className="w-full rounded-full border border-slate-700 bg-slate-900/80 px-6 py-4 pr-24 text-white outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
                         />
+
                         <button
                           type="button"
-                          onClick={() => setShowPassword((prev) => !prev)}
+                          onClick={() =>
+                            setShowPassword((prev) => !prev)
+                          }
                           className="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-semibold text-slate-400 transition hover:text-white"
                         >
                           {showPassword ? 'HIDE' : 'SHOW'}
                         </button>
+
                       </div>
                     </div>
 
+                    {/* REMEMBER */}
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between text-sm text-slate-300">
+
                       <label className="inline-flex items-center gap-2 text-slate-300">
+
                         <input
                           type="checkbox"
                           checked={rememberMe}
-                          onChange={(event) => setRememberMe(event.target.checked)}
+                          onChange={(event) =>
+                            setRememberMe(event.target.checked)
+                          }
                           className="h-4 w-4 rounded border-slate-600 bg-slate-900 text-primary focus:ring-primary"
                         />
+
                         <span>Remember me</span>
+
                       </label>
+
                       <button
                         type="button"
                         onClick={() => navigate('/forgot-password')}
@@ -199,46 +275,84 @@ export default function Auth({ auth, onLogin }) {
                       >
                         Forgot Password?
                       </button>
+
                     </div>
 
-                    {loginError && <p className="text-sm text-red-400">{loginError}</p>}
+                    {/* ERROR */}
+                    {loginError && (
+                      <p className="text-sm text-red-400">
+                        {loginError}
+                      </p>
+                    )}
+
+                    {/* LOGIN BUTTON */}
                     <button
                       type="submit"
                       disabled={loginLoading}
                       className="w-full rounded-full bg-[#2563EB] px-6 py-4 text-sm font-semibold text-white shadow-lg transition hover:bg-[#1d4ed8] disabled:cursor-not-allowed disabled:opacity-70"
                     >
-                      {loginLoading ? 'Signing in…' : 'Sign in'}
+                      {loginLoading
+                        ? 'Signing in…'
+                        : 'Sign in'}
                     </button>
 
+                    {/* GOOGLE */}
                     <button
                       type="button"
                       className="mt-2 flex w-full items-center justify-center gap-3 rounded-full border border-white/15 bg-white px-6 py-4 text-sm font-semibold text-slate-900 shadow-sm transition hover:bg-slate-100"
                     >
                       <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-white shadow-sm">
-                        <span className="text-sm font-bold text-[#4285F4]">G</span>
+                        <span className="text-sm font-bold text-[#4285F4]">
+                          G
+                        </span>
                       </span>
+
                       Continue with Google
                     </button>
 
                     <p className="text-center text-sm text-slate-400">
                       New here?{' '}
-                      <button type="button" onClick={() => setActiveTab('register')} className="font-semibold text-white transition hover:text-primary">
+
+                      <button
+                        type="button"
+                        onClick={() => setActiveTab('register')}
+                        className="font-semibold text-white transition hover:text-primary"
+                      >
                         Sign Up
                       </button>
                     </p>
+
                   </form>
                 </div>
               )}
 
+              {/* ===================================================== */}
+              {/* REGISTER */}
+              {/* ===================================================== */}
+
               {activeTab === 'register' && (
                 <div>
+
                   <div className="mb-6">
-                    <p className="text-sm font-semibold uppercase tracking-[0.24em] text-primary">Registration</p>
-                    <h2 className="mt-3 text-3xl font-semibold text-white">Create your ONUS account</h2>
-                    <p className="mt-3 text-slate-300/90">Register as a job seeker or recruiter and start exploring new opportunities.</p>
+
+                    <p className="text-sm font-semibold uppercase tracking-[0.24em] text-primary">
+                      Registration
+                    </p>
+
+                    <h2 className="mt-3 text-3xl font-semibold text-white">
+                      Create your ONUS account
+                    </h2>
+
+                    <p className="mt-3 text-slate-300/90">
+                      Register as a job seeker or recruiter and start
+                      exploring new opportunities.
+                    </p>
+
                   </div>
 
+                  {/* REGISTER ROLE */}
                   <div className="mb-6 grid gap-3 sm:grid-cols-2">
+
                     <button
                       type="button"
                       onClick={() => setRegisterRole('job-seeker')}
@@ -250,6 +364,7 @@ export default function Auth({ auth, onLogin }) {
                     >
                       Register as Job Seeker
                     </button>
+
                     <button
                       type="button"
                       onClick={() => setRegisterRole('recruiter')}
@@ -261,94 +376,175 @@ export default function Auth({ auth, onLogin }) {
                     >
                       Register as Recruiter
                     </button>
+
                   </div>
 
                   <form onSubmit={handleRegisterSubmit} className="space-y-5">
+
+                    {/* NAME */}
                     <div>
-                      <label className="block text-sm font-medium text-slate-300 mb-2">Full Name</label>
+                      <label className="block text-sm font-medium text-slate-300 mb-2">
+                        Full Name
+                      </label>
+
                       <input
                         type="text"
                         value={registerName}
-                        onChange={(event) => setRegisterName(event.target.value)}
+                        onChange={(event) =>
+                          setRegisterName(event.target.value)
+                        }
                         placeholder="John Doe"
+                        required
                         className="w-full rounded-full border border-slate-700 bg-slate-900/80 px-6 py-4 text-white outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
                       />
                     </div>
 
+                    {/* EMAIL */}
                     <div>
-                      <label className="block text-sm font-medium text-slate-300 mb-2">Email Address</label>
+                      <label className="block text-sm font-medium text-slate-300 mb-2">
+                        Email Address
+                      </label>
+
                       <input
                         type="email"
                         value={registerEmail}
-                        onChange={(event) => setRegisterEmail(event.target.value)}
+                        onChange={(event) =>
+                          setRegisterEmail(event.target.value)
+                        }
                         placeholder="your@email.com"
+                        required
                         className="w-full rounded-full border border-slate-700 bg-slate-900/80 px-6 py-4 text-white outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
                       />
                     </div>
 
+                    {/* PASSWORD */}
                     <div>
-                      <label className="block text-sm font-medium text-slate-300 mb-2">Password</label>
+                      <label className="block text-sm font-medium text-slate-300 mb-2">
+                        Password
+                      </label>
+
                       <div className="relative">
+
                         <input
                           type={showPassword ? 'text' : 'password'}
                           value={registerPassword}
-                          onChange={(event) => setRegisterPassword(event.target.value)}
+                          onChange={(event) =>
+                            setRegisterPassword(event.target.value)
+                          }
                           placeholder="••••••••"
+                          required
                           className="w-full rounded-full border border-slate-700 bg-slate-900/80 px-6 py-4 pr-24 text-white outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
                         />
+
                         <button
                           type="button"
-                          onClick={() => setShowPassword((prev) => !prev)}
+                          onClick={() =>
+                            setShowPassword((prev) => !prev)
+                          }
                           className="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-semibold text-slate-400 transition hover:text-white"
                         >
                           {showPassword ? 'HIDE' : 'SHOW'}
                         </button>
+
                       </div>
                     </div>
 
-                    {registerError && <p className="text-sm text-red-400">{registerError}</p>}
+                    {/* ERROR */}
+                    {registerError && (
+                      <p className="text-sm text-red-400">
+                        {registerError}
+                      </p>
+                    )}
+
+                    {/* REGISTER BUTTON */}
                     <button
                       type="submit"
                       disabled={registerLoading}
                       className="w-full rounded-full bg-[#2563EB] px-6 py-4 text-sm font-semibold text-white shadow-lg transition hover:bg-[#1d4ed8] disabled:cursor-not-allowed disabled:opacity-70"
                     >
-                      {registerLoading ? 'Creating account…' : 'Create Account'}
+                      {registerLoading
+                        ? 'Creating account…'
+                        : 'Create Account'}
                     </button>
 
                     <p className="text-center text-sm text-slate-400">
                       Already have an account?{' '}
-                      <button type="button" onClick={() => setActiveTab('login')} className="font-semibold text-white transition hover:text-primary">
+
+                      <button
+                        type="button"
+                        onClick={() => setActiveTab('login')}
+                        className="font-semibold text-white transition hover:text-primary"
+                      >
                         Sign in
                       </button>
                     </p>
+
                   </form>
                 </div>
               )}
 
+              {/* ===================================================== */}
+              {/* REFERRAL */}
+              {/* ===================================================== */}
+
               {activeTab === 'referral' && (
                 <div className="grid gap-8 lg:grid-cols-[1fr_0.95fr]">
+
                   <div className="rounded-[1.5rem] border border-white/10 bg-slate-900/80 p-8">
-                    <p className="text-sm font-semibold uppercase tracking-[0.24em] text-primary">Referral & Earn</p>
-                    <h2 className="mt-3 text-3xl font-semibold text-white">Invite friends and earn rewards</h2>
-                    <p className="mt-4 text-slate-300/90 leading-7">
-                      Share your referral link with colleagues and candidates. Every successful sign up earns you rewards and helps grow the ONUS community.
+
+                    <p className="text-sm font-semibold uppercase tracking-[0.24em] text-primary">
+                      Referral & Earn
                     </p>
+
+                    <h2 className="mt-3 text-3xl font-semibold text-white">
+                      Invite friends and earn rewards
+                    </h2>
+
+                    <p className="mt-4 text-slate-300/90 leading-7">
+                      Share your referral link with colleagues and
+                      candidates. Every successful sign up earns you
+                      rewards and helps grow the ONUS community.
+                    </p>
+
                     <div className="mt-8 space-y-4">
+
                       <div className="rounded-[1.5rem] bg-slate-950/80 p-5">
-                        <p className="font-semibold text-white">1. Share your link</p>
-                        <p className="mt-2 text-slate-300">Send your referral URL through chat, email, or social media.</p>
+                        <p className="font-semibold text-white">
+                          1. Share your link
+                        </p>
+
+                        <p className="mt-2 text-slate-300">
+                          Send your referral URL through chat, email,
+                          or social media.
+                        </p>
                       </div>
+
                       <div className="rounded-[1.5rem] bg-slate-950/80 p-5">
-                        <p className="font-semibold text-white">2. They register</p>
-                        <p className="mt-2 text-slate-300">Their sign up counts you as the referrer automatically.</p>
+                        <p className="font-semibold text-white">
+                          2. They register
+                        </p>
+
+                        <p className="mt-2 text-slate-300">
+                          Their sign up counts you as the referrer
+                          automatically.
+                        </p>
                       </div>
+
                       <div className="rounded-[1.5rem] bg-slate-950/80 p-5">
-                        <p className="font-semibold text-white">3. Earn rewards</p>
-                        <p className="mt-2 text-slate-300">Collect bonus credits when referrals become active users.</p>
+                        <p className="font-semibold text-white">
+                          3. Earn rewards
+                        </p>
+
+                        <p className="mt-2 text-slate-300">
+                          Collect bonus credits when referrals become
+                          active users.
+                        </p>
                       </div>
+
                     </div>
 
                     <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+
                       <button
                         type="button"
                         onClick={() => setActiveTab('register')}
@@ -356,6 +552,7 @@ export default function Auth({ auth, onLogin }) {
                       >
                         Create Account
                       </button>
+
                       <button
                         type="button"
                         onClick={() => setActiveTab('login')}
@@ -363,47 +560,90 @@ export default function Auth({ auth, onLogin }) {
                       >
                         Login
                       </button>
+
                     </div>
                   </div>
 
                   <div className="grid gap-4">
+
                     <div className="rounded-[1.5rem] bg-white/5 p-6">
-                      <p className="text-sm uppercase tracking-[0.24em] text-primary">Referral Insights</p>
+
+                      <p className="text-sm uppercase tracking-[0.24em] text-primary">
+                        Referral Insights
+                      </p>
+
                       <div className="mt-4 grid gap-3 sm:grid-cols-3">
+
                         <div className="rounded-3xl bg-slate-950/70 p-4 text-center">
-                          <p className="text-sm text-slate-400">Invites Sent</p>
-                          <p className="mt-3 text-2xl font-semibold text-white">12</p>
+                          <p className="text-sm text-slate-400">
+                            Invites Sent
+                          </p>
+
+                          <p className="mt-3 text-2xl font-semibold text-white">
+                            12
+                          </p>
                         </div>
+
                         <div className="rounded-3xl bg-slate-950/70 p-4 text-center">
-                          <p className="text-sm text-slate-400">Signups</p>
-                          <p className="mt-3 text-2xl font-semibold text-white">7</p>
+                          <p className="text-sm text-slate-400">
+                            Signups
+                          </p>
+
+                          <p className="mt-3 text-2xl font-semibold text-white">
+                            7
+                          </p>
                         </div>
+
                         <div className="rounded-3xl bg-slate-950/70 p-4 text-center">
-                          <p className="text-sm text-slate-400">Rewards</p>
-                          <p className="mt-3 text-2xl font-semibold text-white">₹1,850</p>
+                          <p className="text-sm text-slate-400">
+                            Rewards
+                          </p>
+
+                          <p className="mt-3 text-2xl font-semibold text-white">
+                            ₹1,850
+                          </p>
                         </div>
+
                       </div>
                     </div>
+
                     <div className="rounded-[1.5rem] bg-white/5 p-6">
-                      <p className="text-sm uppercase tracking-[0.24em] text-primary">Why refer?</p>
+
+                      <p className="text-sm uppercase tracking-[0.24em] text-primary">
+                        Why refer?
+                      </p>
+
                       <ul className="mt-4 space-y-3 text-slate-300">
+
                         <li className="flex gap-3">
                           <span className="mt-1 inline-block h-2.5 w-2.5 rounded-full bg-primary" />
-                          <span>Boost your earnings while helping others find jobs.</span>
+                          <span>
+                            Boost your earnings while helping others
+                            find jobs.
+                          </span>
                         </li>
+
                         <li className="flex gap-3">
                           <span className="mt-1 inline-block h-2.5 w-2.5 rounded-full bg-primary" />
-                          <span>Share career opportunities with your network.</span>
+                          <span>
+                            Share career opportunities with your network.
+                          </span>
                         </li>
+
                         <li className="flex gap-3">
                           <span className="mt-1 inline-block h-2.5 w-2.5 rounded-full bg-primary" />
-                          <span>Track progress from one polished dashboard.</span>
+                          <span>
+                            Track progress from one polished dashboard.
+                          </span>
                         </li>
+
                       </ul>
                     </div>
+
                   </div>
                 </div>
               )}
+
             </div>
           </div>
         </div>
