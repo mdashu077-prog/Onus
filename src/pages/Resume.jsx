@@ -1,14 +1,15 @@
 import { useEffect, useState } from 'react'
-import { protectedRequest } from '../services/api'
-
-const BASE_URL =
-  import.meta.env.VITE_API_BASE_URL ||
-  'http://localhost:9090'
+import {
+  getMyResume,
+  viewMyResume,
+  downloadMyResume,
+} from '../services/api'
 
 export default function Resume() {
   const [resume, setResume] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [viewing, setViewing] = useState(false)
   const [downloading, setDownloading] = useState(false)
 
   // =====================================================
@@ -20,15 +21,9 @@ export default function Resume() {
       setLoading(true)
       setError('')
 
-      const response =
-        await protectedRequest(
-          '/api/applications/resume',
-          {
-            method: 'GET',
-          }
-        )
+      const data = await getMyResume()
 
-      setResume(response)
+      setResume(data)
 
     } catch (err) {
       console.error(
@@ -37,11 +32,12 @@ export default function Resume() {
       )
 
       if (
-        err.message ===
-        'No resume found'
+        err.message === 'No resume found'
       ) {
         setResume(null)
       } else {
+        setResume(null)
+
         setError(
           err.message ||
             'Failed to load resume'
@@ -64,49 +60,25 @@ export default function Resume() {
   async function handleViewResume() {
     try {
       setError('')
-
-      const token =
-        localStorage.getItem('onus_token')
-
-      if (!token) {
-        throw new Error(
-          'Please login again'
-        )
-      }
-
-      const response =
-        await fetch(
-          `${BASE_URL}/api/applications/resume/view`,
-          {
-            method: 'GET',
-            headers: {
-              Authorization:
-                `Bearer ${token}`,
-            },
-          }
-        )
-
-      if (!response.ok) {
-        const text =
-          await response.text()
-
-        throw new Error(
-          text ||
-            `Failed to view resume (${response.status})`
-        )
-      }
+      setViewing(true)
 
       const blob =
-        await response.blob()
+        await viewMyResume()
 
       const url =
         window.URL.createObjectURL(blob)
 
-      window.open(
-        url,
-        '_blank',
-        'noopener,noreferrer'
-      )
+      const newWindow =
+        window.open(
+          url,
+          '_blank'
+        )
+
+      if (!newWindow) {
+        throw new Error(
+          'Please allow pop-ups to view your resume'
+        )
+      }
 
       setTimeout(() => {
         window.URL.revokeObjectURL(url)
@@ -122,6 +94,9 @@ export default function Resume() {
         err.message ||
           'Failed to view resume'
       )
+
+    } finally {
+      setViewing(false)
     }
   }
 
@@ -134,39 +109,8 @@ export default function Resume() {
       setError('')
       setDownloading(true)
 
-      const token =
-        localStorage.getItem('onus_token')
-
-      if (!token) {
-        throw new Error(
-          'Please login again'
-        )
-      }
-
-      const response =
-        await fetch(
-          `${BASE_URL}/api/applications/resume/download`,
-          {
-            method: 'GET',
-            headers: {
-              Authorization:
-                `Bearer ${token}`,
-            },
-          }
-        )
-
-      if (!response.ok) {
-        const text =
-          await response.text()
-
-        throw new Error(
-          text ||
-            `Failed to download resume (${response.status})`
-        )
-      }
-
       const blob =
-        await response.blob()
+        await downloadMyResume()
 
       const url =
         window.URL.createObjectURL(blob)
@@ -186,7 +130,9 @@ export default function Resume() {
 
       link.remove()
 
-      window.URL.revokeObjectURL(url)
+      setTimeout(() => {
+        window.URL.revokeObjectURL(url)
+      }, 1000)
 
     } catch (err) {
       console.error(
@@ -211,11 +157,15 @@ export default function Resume() {
   if (loading) {
     return (
       <section className="bg-bg py-16 min-h-screen">
+
         <div className="container-center">
+
           <p className="text-slate-600">
             Loading resume...
           </p>
+
         </div>
+
       </section>
     )
   }
@@ -229,7 +179,9 @@ export default function Resume() {
 
       <div className="container-center max-w-4xl">
 
-        {/* HEADER */}
+        {/* =================================================
+            HEADER
+        ================================================= */}
 
         <div className="mb-8">
 
@@ -248,9 +200,12 @@ export default function Resume() {
         </div>
 
 
-        {/* ERROR */}
+        {/* =================================================
+            ERROR
+        ================================================= */}
 
         {error && (
+
           <div className="mb-5 rounded-2xl border border-red-200 bg-red-50 p-4">
 
             <p className="text-sm font-semibold text-red-700">
@@ -258,10 +213,13 @@ export default function Resume() {
             </p>
 
           </div>
+
         )}
 
 
-        {/* RESUME CARD */}
+        {/* =================================================
+            RESUME CARD
+        ================================================= */}
 
         <div className="rounded-[2rem] border border-slate-200 bg-white p-8 shadow-[0_30px_60px_rgba(15,23,42,0.08)]">
 
@@ -274,7 +232,9 @@ export default function Resume() {
 
             <div className="mt-6">
 
-              {/* FILE INFO */}
+              {/* =================================================
+                  FILE INFORMATION
+              ================================================= */}
 
               <div className="rounded-2xl border border-slate-200 bg-slate-50 p-6">
 
@@ -286,15 +246,17 @@ export default function Resume() {
                       Resume file
                     </p>
 
-                    <p className="mt-2 font-semibold text-secondary break-all">
+                    <p className="mt-2 break-all font-semibold text-secondary">
                       {resume.fileName ||
                         'resume.pdf'}
                     </p>
 
                     {resume.contentType && (
+
                       <p className="mt-1 text-sm text-slate-500">
                         {resume.contentType}
                       </p>
+
                     )}
 
                   </div>
@@ -308,20 +270,31 @@ export default function Resume() {
               </div>
 
 
-              {/* BUTTONS */}
+              {/* =================================================
+                  ACTION BUTTONS
+              ================================================= */}
 
               <div className="mt-6 flex flex-wrap gap-3">
+
+                {/* VIEW */}
 
                 <button
                   type="button"
                   onClick={
                     handleViewResume
                   }
-                  className="rounded-full bg-primary px-6 py-3 text-sm font-semibold text-white hover:bg-blue-600 transition"
+                  disabled={viewing}
+                  className="rounded-full bg-primary px-6 py-3 text-sm font-semibold text-white transition hover:bg-blue-600 disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  View Resume
+
+                  {viewing
+                    ? 'Opening...'
+                    : 'View Resume'}
+
                 </button>
 
+
+                {/* DOWNLOAD */}
 
                 <button
                   type="button"
@@ -329,11 +302,13 @@ export default function Resume() {
                     handleDownloadResume
                   }
                   disabled={downloading}
-                  className="rounded-full border border-primary px-6 py-3 text-sm font-semibold text-primary hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-60 transition"
+                  className="rounded-full border border-primary px-6 py-3 text-sm font-semibold text-primary transition hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-60"
                 >
+
                   {downloading
                     ? 'Downloading...'
                     : 'Download Resume'}
+
                 </button>
 
               </div>
@@ -342,7 +317,9 @@ export default function Resume() {
 
           ) : (
 
-            /* NO RESUME */
+            /* =================================================
+               NO RESUME
+            ================================================= */
 
             <div className="mt-6 rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-8 text-center">
 

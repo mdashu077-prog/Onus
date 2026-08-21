@@ -28,7 +28,9 @@ export default function JobDetails() {
 
   const [successMessage, setSuccessMessage] =
     useState('')
-  const [isSaved, setIsSaved] = useState(false)
+
+  const [isSaved, setIsSaved] =
+    useState(false)
 
   // =====================================================
   // LOAD JOB DETAILS
@@ -128,8 +130,6 @@ export default function JobDetails() {
           err
         )
 
-        // Application status check fail hone par
-        // Apply button ko unnecessarily disable nahi karenge.
         setAlreadyApplied(false)
       } finally {
         setCheckingApplication(false)
@@ -139,34 +139,41 @@ export default function JobDetails() {
     checkAlreadyApplied()
   }, [jobId])
 
-// =====================================================
-// CHECK WHETHER JOB IS SAVED
-// =====================================================
+  // =====================================================
+  // CHECK WHETHER JOB IS SAVED
+  // =====================================================
 
-useEffect(() => {
-  if (!jobId) return
+  useEffect(() => {
+    if (!jobId) {
+      return
+    }
 
-  try {
-    const savedJobs = JSON.parse(
-      localStorage.getItem('onus_saved_jobs') || '[]'
-    )
+    try {
+      const savedJobs =
+        JSON.parse(
+          localStorage.getItem(
+            'onus_saved_jobs'
+          ) || '[]'
+        )
 
-    const saved = Array.isArray(savedJobs)
-      && savedJobs.some(
-        (savedJob) =>
-          String(savedJob.id) === String(jobId)
+      const saved =
+        Array.isArray(savedJobs) &&
+        savedJobs.some(
+          (savedJob) =>
+            String(savedJob.id) ===
+            String(jobId)
+        )
+
+      setIsSaved(saved)
+    } catch (error) {
+      console.error(
+        'Failed to check saved job:',
+        error
       )
 
-    setIsSaved(saved)
-  } catch (error) {
-    console.error(
-      'Failed to check saved job:',
-      error
-    )
-
-    setIsSaved(false)
-  }
-}, [jobId])
+      setIsSaved(false)
+    }
+  }, [jobId])
 
   // =====================================================
   // APPLY BUTTON
@@ -176,7 +183,6 @@ useEffect(() => {
     const token =
       localStorage.getItem('onus_token')
 
-    // User logged out hai
     if (!token) {
       navigate('/login', {
         state: {
@@ -187,7 +193,6 @@ useEffect(() => {
       return
     }
 
-    // Already applied
     if (alreadyApplied) {
       return
     }
@@ -218,63 +223,71 @@ useEffect(() => {
   }
 
   // =====================================================
-  // SAVE JOB
+  // SAVE / REMOVE JOB
   // =====================================================
 
-function handleSave() {
-  try {
-    const savedJobs = JSON.parse(
-      localStorage.getItem('onus_saved_jobs') || '[]'
-    )
+  function handleSave() {
+    try {
+      const savedJobs =
+        JSON.parse(
+          localStorage.getItem(
+            'onus_saved_jobs'
+          ) || '[]'
+        )
 
-    const alreadySaved = savedJobs.some(
-      (savedJob) =>
-        String(savedJob.id) === String(job.id)
-    )
+      const alreadySaved =
+        savedJobs.some(
+          (savedJob) =>
+            String(savedJob.id) ===
+            String(job.id)
+        )
 
-    if (alreadySaved) {
-      const updatedJobs = savedJobs.filter(
-        (savedJob) =>
-          String(savedJob.id) !== String(job.id)
-      )
+      // REMOVE SAVED JOB
+      if (alreadySaved) {
+        const updatedJobs =
+          savedJobs.filter(
+            (savedJob) =>
+              String(savedJob.id) !==
+              String(job.id)
+          )
+
+        localStorage.setItem(
+          'onus_saved_jobs',
+          JSON.stringify(updatedJobs)
+        )
+
+        setIsSaved(false)
+
+        window.dispatchEvent(
+          new Event('savedJobsUpdated')
+        )
+
+        return
+      }
+
+      // SAVE JOB
+      const updatedJobs = [
+        ...savedJobs,
+        job,
+      ]
 
       localStorage.setItem(
         'onus_saved_jobs',
         JSON.stringify(updatedJobs)
       )
 
-      setIsSaved(false)
+      setIsSaved(true)
 
       window.dispatchEvent(
         new Event('savedJobsUpdated')
       )
-
-      return
+    } catch (error) {
+      console.error(
+        'Failed to save job:',
+        error
+      )
     }
-
-    const updatedJobs = [
-      ...savedJobs,
-      job,
-    ]
-
-    localStorage.setItem(
-      'onus_saved_jobs',
-      JSON.stringify(updatedJobs)
-    )
-
-    setIsSaved(true)
-
-    window.dispatchEvent(
-      new Event('savedJobsUpdated')
-    )
-
-  } catch (error) {
-    console.error(
-      'Failed to save job:',
-      error
-    )
   }
-}
 
   // =====================================================
   // LOADING
@@ -282,7 +295,7 @@ function handleSave() {
 
   if (loading) {
     return (
-      <section className="bg-bg py-16">
+      <section className="bg-bg py-16 min-h-screen">
         <div className="container-center">
           <p className="text-slate-600">
             Loading job details...
@@ -298,7 +311,7 @@ function handleSave() {
 
   if (error) {
     return (
-      <section className="bg-bg py-16">
+      <section className="bg-bg py-16 min-h-screen">
         <div className="container-center max-w-5xl">
 
           <button
@@ -310,9 +323,11 @@ function handleSave() {
           </button>
 
           <div className="rounded-[2rem] border border-red-200 bg-white p-8 shadow-sm">
+
             <p className="font-semibold text-red-600">
               {error}
             </p>
+
           </div>
 
         </div>
@@ -326,7 +341,7 @@ function handleSave() {
 
   if (!job) {
     return (
-      <section className="bg-bg py-16">
+      <section className="bg-bg py-16 min-h-screen">
         <div className="container-center">
 
           <button
@@ -351,7 +366,8 @@ function handleSave() {
   // =====================================================
 
   return (
-    <section className="bg-bg py-16">
+    <section className="bg-bg py-16 min-h-screen">
+
       <div className="container-center max-w-5xl">
 
         {/* BACK BUTTON */}
@@ -476,18 +492,20 @@ function handleSave() {
                     : 'Apply Now'}
               </button>
 
-              {/* SAVE */}
+              {/* SAVE JOB */}
 
               <button
-                 type="button"
-                   onClick={handleSave}
-                   className={`rounded-full px-6 py-3 text-sm font-semibold transition ${
-                    isSaved
-                        ? 'border border-green-600 bg-green-50 text-green-700'
-                        : 'border border-primary text-primary hover:bg-primary/10'
-                 }`}
-                >
-                {isSaved ? '✓ Saved' : 'Save Job'}
+                type="button"
+                onClick={handleSave}
+                className={`rounded-full px-6 py-3 text-sm font-semibold transition ${
+                  isSaved
+                    ? 'border border-green-600 bg-green-50 text-green-700'
+                    : 'border border-primary bg-white text-primary hover:bg-primary/10'
+                }`}
+              >
+                {isSaved
+                  ? '✓ Saved'
+                  : 'Save Job'}
               </button>
 
             </div>
@@ -497,12 +515,10 @@ function handleSave() {
             ================================================= */}
 
             {successMessage && (
-              
               <div className="mt-5 rounded-2xl border border-green-200 bg-green-50 p-4">
 
                 <p className="text-sm font-semibold text-green-700">
                   {successMessage}
-                  
                 </p>
 
               </div>
@@ -528,8 +544,6 @@ function handleSave() {
 
             <div className="mt-6 space-y-4 text-sm text-slate-600">
 
-              {/* COMPANY */}
-
               <p>
                 <span className="font-semibold text-secondary">
                   Company:
@@ -537,8 +551,6 @@ function handleSave() {
                 {job.company ||
                   'Not specified'}
               </p>
-
-              {/* LOCATION */}
 
               <p>
                 <span className="font-semibold text-secondary">
@@ -548,8 +560,6 @@ function handleSave() {
                   'Not specified'}
               </p>
 
-              {/* JOB TYPE */}
-
               <p>
                 <span className="font-semibold text-secondary">
                   Hiring Type:
@@ -557,8 +567,6 @@ function handleSave() {
                 {job.jobType ||
                   'Full-time'}
               </p>
-
-              {/* SALARY */}
 
               <p>
                 <span className="font-semibold text-secondary">
@@ -595,6 +603,7 @@ function handleSave() {
         )}
 
       </div>
+
     </section>
   )
 }

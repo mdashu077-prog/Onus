@@ -86,29 +86,27 @@ export async function protectedRequest(
     ...(options.headers || {}),
   }
 
-  // ===============================================
+  // ===================================================
   // JWT TOKEN
-  // ===============================================
+  // ===================================================
 
   if (token) {
     headers.Authorization =
       `Bearer ${token}`
   }
 
-  // ===============================================
+  // ===================================================
   // CONTENT TYPE
-  // ===============================================
-  //
-  // FormData ke liye Content-Type manually
-  // set nahi karna hai.
-  //
-  // Browser automatically:
-  // multipart/form-data; boundary=...
-  //
-  // set karega.
-  // ===============================================
+  // ===================================================
 
   if (isFormData) {
+    // FormData ke saath Content-Type manually
+    // set nahi karna hai.
+    //
+    // Browser automatically:
+    // multipart/form-data; boundary=...
+    // set karega.
+
     delete headers['Content-Type']
   } else {
     headers['Content-Type'] =
@@ -136,9 +134,9 @@ export async function protectedRequest(
     }
   }
 
-  // ===============================================
+  // ===================================================
   // ERROR HANDLING
-  // ===============================================
+  // ===================================================
 
   if (!response.ok) {
     let message =
@@ -207,9 +205,9 @@ export async function applyForJob(
   jobId,
   formData
 ) {
-  // ===============================================
+  // ===================================================
   // JOB ID CHECK
-  // ===============================================
+  // ===================================================
 
   if (!jobId) {
     throw new Error(
@@ -217,9 +215,9 @@ export async function applyForJob(
     )
   }
 
-  // ===============================================
+  // ===================================================
   // FORMDATA CHECK
-  // ===============================================
+  // ===================================================
 
   if (!(formData instanceof FormData)) {
     throw new Error(
@@ -240,25 +238,13 @@ export async function applyForJob(
 // =====================================================
 // CHECK APPLICATION STATUS
 // =====================================================
-//
-// Response:
-// {
-//   "applied": true
-// }
-//
-// OR
-//
-// {
-//   "applied": false
-// }
-// =====================================================
 
 export async function checkApplicationStatus(
   jobId
 ) {
-  // ===============================================
+  // ===================================================
   // JOB ID CHECK
-  // ===============================================
+  // ===================================================
 
   if (!jobId) {
     throw new Error(
@@ -274,9 +260,9 @@ export async function checkApplicationStatus(
       }
     )
 
-  // ===============================================
+  // ===================================================
   // VALIDATE RESPONSE
-  // ===============================================
+  // ===================================================
 
   if (
     !response ||
@@ -318,4 +304,165 @@ export async function getMyApplications() {
   throw new Error(
     'Invalid applications response'
   )
+}
+
+
+// =====================================================
+// GET MY RESUME INFORMATION
+// =====================================================
+//
+// Backend endpoint:
+//
+// GET /api/applications/resume
+//
+// Response:
+//
+// {
+//   "fileName": "resume.pdf",
+//   "contentType": "application/pdf"
+// }
+//
+// =====================================================
+
+export async function getMyResume() {
+  const response =
+    await protectedRequest(
+      '/api/applications/resume',
+      {
+        method: 'GET',
+      }
+    )
+
+  if (
+    !response ||
+    typeof response !== 'object'
+  ) {
+    throw new Error(
+      'Invalid resume response'
+    )
+  }
+
+  return response
+}
+
+
+// =====================================================
+// VIEW MY RESUME
+// =====================================================
+//
+// Backend endpoint:
+//
+// GET /api/applications/resume/view
+//
+// Returns PDF Blob.
+//
+// =====================================================
+
+export async function viewMyResume() {
+  const token =
+    localStorage.getItem('onus_token')
+
+  if (!token) {
+    throw new Error(
+      'Please login again'
+    )
+  }
+
+  const response =
+    await fetch(
+      `${BASE_URL}/api/applications/resume/view`,
+      {
+        method: 'GET',
+        headers: {
+          Authorization:
+            `Bearer ${token}`,
+        },
+      }
+    )
+
+  if (!response.ok) {
+    const text =
+      await response.text()
+
+    let message =
+      `Failed to view resume (${response.status})`
+
+    if (text) {
+      try {
+        const data =
+          JSON.parse(text)
+
+        message =
+          data?.message ||
+          message
+      } catch {
+        message = text
+      }
+    }
+
+    throw new Error(message)
+  }
+
+  return response.blob()
+}
+
+
+// =====================================================
+// DOWNLOAD MY RESUME
+// =====================================================
+//
+// Backend endpoint:
+//
+// GET /api/applications/resume/download
+//
+// Returns resume Blob.
+//
+// =====================================================
+
+export async function downloadMyResume() {
+  const token =
+    localStorage.getItem('onus_token')
+
+  if (!token) {
+    throw new Error(
+      'Please login again'
+    )
+  }
+
+  const response =
+    await fetch(
+      `${BASE_URL}/api/applications/resume/download`,
+      {
+        method: 'GET',
+        headers: {
+          Authorization:
+            `Bearer ${token}`,
+        },
+      }
+    )
+
+  if (!response.ok) {
+    const text =
+      await response.text()
+
+    let message =
+      `Failed to download resume (${response.status})`
+
+    if (text) {
+      try {
+        const data =
+          JSON.parse(text)
+
+        message =
+          data?.message ||
+          message
+      } catch {
+        message = text
+      }
+    }
+
+    throw new Error(message)
+  }
+
+  return response.blob()
 }
