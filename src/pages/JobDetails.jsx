@@ -6,14 +6,13 @@ import { getMyApplications } from '../services/api'
 
 const BASE_URL =
   import.meta.env.VITE_API_BASE_URL ||
-  'http://localhost:9090'
+  'https://onus-backend-u9zs.onrender.com'
 
 export default function JobDetails() {
   const { jobId } = useParams()
   const navigate = useNavigate()
 
   const [job, setJob] = useState(null)
-
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
@@ -49,7 +48,13 @@ export default function JobDetails() {
         setError('')
 
         const response = await fetch(
-          `${BASE_URL}/api/jobs/${jobId}`
+          `${BASE_URL}/api/jobs/${jobId}`,
+          {
+            method: 'GET',
+            headers: {
+              Accept: 'application/json',
+            },
+          }
         )
 
         const text = await response.text()
@@ -65,22 +70,15 @@ export default function JobDetails() {
         }
 
         if (!response.ok) {
-          const message =
-            typeof data === 'object' &&
-            data?.message
-              ? data.message
-              : text ||
-                `Failed to load job (${response.status})`
-
-          throw new Error(message)
+          throw new Error(
+            data?.message ||
+              `Failed to load job (${response.status})`
+          )
         }
 
         setJob(data)
       } catch (err) {
-        console.error(
-          'Failed to load job:',
-          err
-        )
+        console.error('Failed to load job:', err)
 
         setError(
           err.message ||
@@ -95,7 +93,7 @@ export default function JobDetails() {
   }, [jobId])
 
   // =====================================================
-  // CHECK WHETHER USER ALREADY APPLIED
+  // CHECK APPLICATION
   // =====================================================
 
   useEffect(() => {
@@ -116,12 +114,11 @@ export default function JobDetails() {
 
         const applied =
           Array.isArray(applications) &&
-          applications.some((application) => {
-            return (
+          applications.some(
+            (application) =>
               String(application?.job?.id) ===
               String(jobId)
-            )
-          })
+          )
 
         setAlreadyApplied(applied)
       } catch (err) {
@@ -140,13 +137,11 @@ export default function JobDetails() {
   }, [jobId])
 
   // =====================================================
-  // CHECK WHETHER JOB IS SAVED
+  // CHECK SAVED JOB
   // =====================================================
 
   useEffect(() => {
-    if (!jobId) {
-      return
-    }
+    if (!jobId) return
 
     try {
       const savedJobs =
@@ -165,10 +160,10 @@ export default function JobDetails() {
         )
 
       setIsSaved(saved)
-    } catch (error) {
+    } catch (err) {
       console.error(
         'Failed to check saved job:',
-        error
+        err
       )
 
       setIsSaved(false)
@@ -176,7 +171,7 @@ export default function JobDetails() {
   }, [jobId])
 
   // =====================================================
-  // APPLY BUTTON
+  // APPLY
   // =====================================================
 
   function handleApplyClick() {
@@ -193,9 +188,7 @@ export default function JobDetails() {
       return
     }
 
-    if (alreadyApplied) {
-      return
-    }
+    if (alreadyApplied) return
 
     setSuccessMessage('')
     setShowApplicationForm(true)
@@ -223,10 +216,12 @@ export default function JobDetails() {
   }
 
   // =====================================================
-  // SAVE / REMOVE JOB
+  // SAVE JOB
   // =====================================================
 
   function handleSave() {
+    if (!job) return
+
     try {
       const savedJobs =
         JSON.parse(
@@ -242,7 +237,6 @@ export default function JobDetails() {
             String(job.id)
         )
 
-      // REMOVE SAVED JOB
       if (alreadySaved) {
         const updatedJobs =
           savedJobs.filter(
@@ -265,7 +259,6 @@ export default function JobDetails() {
         return
       }
 
-      // SAVE JOB
       const updatedJobs = [
         ...savedJobs,
         job,
@@ -281,10 +274,10 @@ export default function JobDetails() {
       window.dispatchEvent(
         new Event('savedJobsUpdated')
       )
-    } catch (error) {
+    } catch (err) {
       console.error(
         'Failed to save job:',
-        error
+        err
       )
     }
   }
@@ -295,7 +288,7 @@ export default function JobDetails() {
 
   if (loading) {
     return (
-      <section className="bg-bg py-16 min-h-screen">
+      <section className="bg-bg min-h-screen py-16">
         <div className="container-center">
           <p className="text-slate-600">
             Loading job details...
@@ -311,7 +304,7 @@ export default function JobDetails() {
 
   if (error) {
     return (
-      <section className="bg-bg py-16 min-h-screen">
+      <section className="bg-bg min-h-screen py-16">
         <div className="container-center max-w-5xl">
 
           <button
@@ -323,11 +316,9 @@ export default function JobDetails() {
           </button>
 
           <div className="rounded-[2rem] border border-red-200 bg-white p-8 shadow-sm">
-
             <p className="font-semibold text-red-600">
               {error}
             </p>
-
           </div>
 
         </div>
@@ -341,7 +332,7 @@ export default function JobDetails() {
 
   if (!job) {
     return (
-      <section className="bg-bg py-16 min-h-screen">
+      <section className="bg-bg min-h-screen py-16">
         <div className="container-center">
 
           <button
@@ -366,11 +357,9 @@ export default function JobDetails() {
   // =====================================================
 
   return (
-    <section className="bg-bg py-16 min-h-screen">
+    <section className="bg-bg min-h-screen py-16">
 
       <div className="container-center max-w-5xl">
-
-        {/* BACK BUTTON */}
 
         <button
           type="button"
@@ -380,15 +369,9 @@ export default function JobDetails() {
           ← Back to jobs
         </button>
 
-        {/* =================================================
-            JOB + COMPANY DETAILS
-        ================================================= */}
-
         <div className="grid gap-8 xl:grid-cols-[1.2fr_0.8fr]">
 
-          {/* =================================================
-              JOB DETAILS CARD
-          ================================================= */}
+          {/* JOB DETAILS */}
 
           <div className="rounded-[2rem] border border-slate-200 bg-white p-8 shadow-[0_30px_60px_rgba(15,23,42,0.08)]">
 
@@ -409,16 +392,9 @@ export default function JobDetails() {
                 'No description available.'}
             </p>
 
-            {/* =================================================
-                JOB INFORMATION
-            ================================================= */}
-
             <div className="mt-8 grid gap-4 sm:grid-cols-3">
 
-              {/* SALARY */}
-
               <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-
                 <p className="text-sm text-slate-500">
                   Salary
                 </p>
@@ -427,13 +403,9 @@ export default function JobDetails() {
                   {job.salary ||
                     'Not specified'}
                 </p>
-
               </div>
 
-              {/* LOCATION */}
-
               <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-
                 <p className="text-sm text-slate-500">
                   Location
                 </p>
@@ -442,13 +414,9 @@ export default function JobDetails() {
                   {job.location ||
                     'Not specified'}
                 </p>
-
               </div>
 
-              {/* JOB TYPE */}
-
               <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-
                 <p className="text-sm text-slate-500">
                   Job Type
                 </p>
@@ -457,18 +425,11 @@ export default function JobDetails() {
                   {job.jobType ||
                     'Full-time'}
                 </p>
-
               </div>
 
             </div>
 
-            {/* =================================================
-                ACTION BUTTONS
-            ================================================= */}
-
             <div className="mt-8 flex flex-wrap gap-3">
-
-              {/* APPLY */}
 
               <button
                 type="button"
@@ -492,8 +453,6 @@ export default function JobDetails() {
                     : 'Apply Now'}
               </button>
 
-              {/* SAVE JOB */}
-
               <button
                 type="button"
                 onClick={handleSave}
@@ -510,25 +469,17 @@ export default function JobDetails() {
 
             </div>
 
-            {/* =================================================
-                SUCCESS MESSAGE
-            ================================================= */}
-
             {successMessage && (
               <div className="mt-5 rounded-2xl border border-green-200 bg-green-50 p-4">
-
                 <p className="text-sm font-semibold text-green-700">
                   {successMessage}
                 </p>
-
               </div>
             )}
 
           </div>
 
-          {/* =================================================
-              COMPANY DETAILS
-          ================================================= */}
+          {/* COMPANY DETAILS */}
 
           <aside className="rounded-[2rem] border border-slate-200 bg-white p-8 shadow-[0_30px_60px_rgba(15,23,42,0.08)]">
 
@@ -582,9 +533,7 @@ export default function JobDetails() {
 
         </div>
 
-        {/* =================================================
-            APPLICATION FORM
-        ================================================= */}
+        {/* APPLICATION FORM */}
 
         {showApplicationForm && (
           <div className="mt-8">
