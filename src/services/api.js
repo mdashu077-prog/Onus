@@ -86,6 +86,7 @@ export async function protectedRequest(
     ...(options.headers || {}),
   }
 
+
   // ===================================================
   // JWT TOKEN
   // ===================================================
@@ -95,23 +96,28 @@ export async function protectedRequest(
       `Bearer ${token}`
   }
 
+
   // ===================================================
   // CONTENT TYPE
   // ===================================================
 
   if (isFormData) {
+
     // FormData ke saath Content-Type manually
     // set nahi karna hai.
-    //
-    // Browser automatically:
-    // multipart/form-data; boundary=...
-    // set karega.
 
     delete headers['Content-Type']
+
   } else {
+
     headers['Content-Type'] =
       'application/json'
   }
+
+
+  // ===================================================
+  // REQUEST
+  // ===================================================
 
   const response = await fetch(
     `${BASE_URL}${path}`,
@@ -121,10 +127,16 @@ export async function protectedRequest(
     }
   )
 
+
   const text =
     await response.text()
 
   let data = null
+
+
+  // ===================================================
+  // RESPONSE PARSE
+  // ===================================================
 
   if (text) {
     try {
@@ -134,11 +146,13 @@ export async function protectedRequest(
     }
   }
 
+
   // ===================================================
   // ERROR HANDLING
   // ===================================================
 
   if (!response.ok) {
+
     let message =
       `Server error (${response.status})`
 
@@ -148,6 +162,7 @@ export async function protectedRequest(
       data.message
     ) {
       message = data.message
+
     } else if (
       typeof data === 'string' &&
       data
@@ -158,15 +173,17 @@ export async function protectedRequest(
     throw new Error(message)
   }
 
+
   return data
 }
 
 
 // =====================================================
-// GET JOBS
+// GET ALL JOBS
 // =====================================================
 
 export async function getJobs() {
+
   const response =
     await fetch(
       `${BASE_URL}/api/jobs`
@@ -176,6 +193,7 @@ export async function getJobs() {
     await response.text()
 
   let data = []
+
 
   if (text) {
     try {
@@ -187,13 +205,121 @@ export async function getJobs() {
     }
   }
 
+
   if (!response.ok) {
     throw new Error(
       'Failed to fetch jobs'
     )
   }
 
+
   return data
+}
+
+
+// =====================================================
+// RECRUITER - GET MY JOBS
+// =====================================================
+
+export async function getMyJobs() {
+
+  const response =
+    await protectedRequest(
+      '/api/jobs/my',
+      {
+        method: 'GET',
+      }
+    )
+
+
+  if (!Array.isArray(response)) {
+    throw new Error(
+      'Invalid jobs response'
+    )
+  }
+
+
+  return response
+}
+
+
+// =====================================================
+// RECRUITER - CREATE JOB
+// =====================================================
+
+export async function createJob(job) {
+
+  if (!job) {
+    throw new Error(
+      'Job data is missing'
+    )
+  }
+
+
+  return protectedRequest(
+    '/api/jobs',
+    {
+      method: 'POST',
+      body: JSON.stringify(job),
+    }
+  )
+}
+
+
+// =====================================================
+// RECRUITER - UPDATE JOB
+// =====================================================
+
+export async function updateJob(
+  jobId,
+  job
+) {
+
+  if (!jobId) {
+    throw new Error(
+      'Job ID is missing'
+    )
+  }
+
+
+  if (!job) {
+    throw new Error(
+      'Job data is missing'
+    )
+  }
+
+
+  return protectedRequest(
+    `/api/jobs/${jobId}`,
+    {
+      method: 'PUT',
+      body: JSON.stringify(job),
+    }
+  )
+}
+
+
+// =====================================================
+// RECRUITER - DELETE JOB
+// =====================================================
+
+export async function deleteJob(
+  jobId
+) {
+
+  if (!jobId) {
+    throw new Error(
+      'Job ID is missing'
+    )
+  }
+
+
+  return protectedRequest(
+    `/api/jobs/${jobId}`,
+    {
+      method: 'DELETE',
+    }
+  )
 }
 
 
@@ -205,9 +331,6 @@ export async function applyForJob(
   jobId,
   formData
 ) {
-  // ===================================================
-  // JOB ID CHECK
-  // ===================================================
 
   if (!jobId) {
     throw new Error(
@@ -215,15 +338,13 @@ export async function applyForJob(
     )
   }
 
-  // ===================================================
-  // FORMDATA CHECK
-  // ===================================================
 
   if (!(formData instanceof FormData)) {
     throw new Error(
       'Application data must be FormData'
     )
   }
+
 
   return protectedRequest(
     `/api/applications/${jobId}`,
@@ -242,15 +363,13 @@ export async function applyForJob(
 export async function checkApplicationStatus(
   jobId
 ) {
-  // ===================================================
-  // JOB ID CHECK
-  // ===================================================
 
   if (!jobId) {
     throw new Error(
       'Job ID is missing'
     )
   }
+
 
   const response =
     await protectedRequest(
@@ -260,9 +379,6 @@ export async function checkApplicationStatus(
       }
     )
 
-  // ===================================================
-  // VALIDATE RESPONSE
-  // ===================================================
 
   if (
     !response ||
@@ -272,6 +388,7 @@ export async function checkApplicationStatus(
       'Invalid application status response'
     )
   }
+
 
   return {
     applied:
@@ -285,6 +402,7 @@ export async function checkApplicationStatus(
 // =====================================================
 
 export async function getMyApplications() {
+
   const response =
     await protectedRequest(
       '/api/applications/my',
@@ -293,13 +411,16 @@ export async function getMyApplications() {
       }
     )
 
+
   if (!response) {
     return []
   }
 
+
   if (Array.isArray(response)) {
     return response
   }
+
 
   throw new Error(
     'Invalid applications response'
@@ -310,21 +431,9 @@ export async function getMyApplications() {
 // =====================================================
 // GET MY RESUME INFORMATION
 // =====================================================
-//
-// Backend endpoint:
-//
-// GET /api/applications/resume
-//
-// Response:
-//
-// {
-//   "fileName": "resume.pdf",
-//   "contentType": "application/pdf"
-// }
-//
-// =====================================================
 
 export async function getMyResume() {
+
   const response =
     await protectedRequest(
       '/api/applications/resume',
@@ -332,6 +441,7 @@ export async function getMyResume() {
         method: 'GET',
       }
     )
+
 
   if (
     !response ||
@@ -342,6 +452,7 @@ export async function getMyResume() {
     )
   }
 
+
   return response
 }
 
@@ -349,24 +460,19 @@ export async function getMyResume() {
 // =====================================================
 // VIEW MY RESUME
 // =====================================================
-//
-// Backend endpoint:
-//
-// GET /api/applications/resume/view
-//
-// Returns PDF Blob.
-//
-// =====================================================
 
 export async function viewMyResume() {
+
   const token =
     localStorage.getItem('onus_token')
+
 
   if (!token) {
     throw new Error(
       'Please login again'
     )
   }
+
 
   const response =
     await fetch(
@@ -380,28 +486,36 @@ export async function viewMyResume() {
       }
     )
 
+
   if (!response.ok) {
+
     const text =
       await response.text()
 
     let message =
       `Failed to view resume (${response.status})`
 
+
     if (text) {
       try {
+
         const data =
           JSON.parse(text)
 
         message =
           data?.message ||
           message
+
       } catch {
+
         message = text
       }
     }
 
+
     throw new Error(message)
   }
+
 
   return response.blob()
 }
@@ -410,24 +524,19 @@ export async function viewMyResume() {
 // =====================================================
 // DOWNLOAD MY RESUME
 // =====================================================
-//
-// Backend endpoint:
-//
-// GET /api/applications/resume/download
-//
-// Returns resume Blob.
-//
-// =====================================================
 
 export async function downloadMyResume() {
+
   const token =
     localStorage.getItem('onus_token')
+
 
   if (!token) {
     throw new Error(
       'Please login again'
     )
   }
+
 
   const response =
     await fetch(
@@ -441,28 +550,36 @@ export async function downloadMyResume() {
       }
     )
 
+
   if (!response.ok) {
+
     const text =
       await response.text()
 
     let message =
       `Failed to download resume (${response.status})`
 
+
     if (text) {
       try {
+
         const data =
           JSON.parse(text)
 
         message =
           data?.message ||
           message
+
       } catch {
+
         message = text
       }
     }
 
+
     throw new Error(message)
   }
+
 
   return response.blob()
 }
