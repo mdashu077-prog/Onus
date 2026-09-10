@@ -1,4 +1,6 @@
+import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { Search } from 'lucide-react'
 
 const companies = [
   { slug: 'google', name: 'Google', openings: '45', location: 'Bangalore' },
@@ -10,19 +12,47 @@ const companies = [
 ]
 
 export default function Companies() {
+  const [query, setQuery] = useState('')
+
+  const filteredCompanies = useMemo(() => {
+    const keyword = query.trim().toLowerCase()
+
+    if (!keyword) return companies
+
+    return companies.filter((company) =>
+      [company.name, company.location, company.openings]
+        .join(' ')
+        .toLowerCase()
+        .includes(keyword)
+    )
+  }, [query])
+
   return (
-    <section className="bg-bg">
-      <div className="container-center py-12">
+    <section className="bg-bg min-h-screen">
+      <div className="container-center py-12 sm:py-14">
         <div className="mb-8">
           <p className="text-sm uppercase tracking-[0.25em] text-primary">Opportunities</p>
           <h2 className="mt-3 text-3xl font-semibold text-secondary">Top Hiring Companies</h2>
           <p className="mt-2 text-slate-600">Discover job openings from India's leading technology companies.</p>
         </div>
 
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {companies.map((company) => (
-            <div key={company.name} className="rounded-[1.5rem] border border-slate-200 bg-white p-6 shadow-sm transition hover:shadow-lg hover:-translate-y-1">
-              <div className="mb-4 flex items-center justify-between">
+        <div className="mb-8 rounded-[1.5rem] border border-slate-200 bg-white p-3 shadow-sm sm:p-4">
+          <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+            <Search className="h-5 w-5 text-slate-400" />
+            <input
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              type="text"
+              placeholder="Search companies or locations..."
+              className="w-full border-0 bg-transparent text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none"
+            />
+          </div>
+        </div>
+
+        <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+          {filteredCompanies.map((company) => (
+            <div key={company.name} className="rounded-[1.5rem] border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-lg">
+              <div className="mb-4 flex items-center justify-between gap-3">
                 <div className="flex h-12 w-12 items-center justify-center rounded-3xl bg-primary/10 text-lg font-bold text-primary">
                   {company.name[0]}
                 </div>

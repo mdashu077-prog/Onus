@@ -18,13 +18,13 @@ export default function Home() {
       <Hero />
       <Stats />
 
-      <section className="container-center py-14">
-        <div className="mb-10 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+      <section className="container-center py-12 sm:py-16">
+        <div className="mb-8 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <p className="text-sm uppercase tracking-[0.28em] text-primary">Featured Jobs</p>
-            <h2 className="mt-4 text-3xl font-semibold text-secondary">Top opportunities right now</h2>
+            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-primary">Featured Jobs</p>
+            <h2 className="mt-3 text-3xl font-semibold tracking-tight text-slate-900">Top opportunities right now</h2>
           </div>
-          <Link to="/jobs" className="inline-flex items-center justify-center rounded-lg bg-primary px-6 py-3 text-sm font-semibold text-white shadow-lg ring-1 ring-primary/30 transition hover:bg-blue-700 hover:scale-[1.02]">
+          <Link to="/jobs" className="inline-flex items-center justify-center rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-white shadow-[0_12px_24px_rgba(37,99,235,0.18)] transition hover:bg-primary-dark">
             View all jobs
           </Link>
         </div>

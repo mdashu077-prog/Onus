@@ -1,5 +1,7 @@
 import './App.css'
+
 import { useEffect, useState } from 'react'
+
 import {
   BrowserRouter,
   Routes,
@@ -7,86 +9,206 @@ import {
   Navigate,
 } from 'react-router-dom'
 
+// =====================================================
+// COMPONENTS
+// =====================================================
+
 import Navbar from './components/Navbar'
 import Footer from './components/Footer'
 import ProtectedRoute from './components/ProtectedRoute'
 
+// =====================================================
+// PAGES
+// =====================================================
+
 import Home from './pages/Home'
 import Jobs from './pages/Jobs'
+import EditJobs from './pages/EditJobs'
+
 import FresherJobs from './pages/FresherJobs'
 import Internships from './pages/Internships'
 import Companies from './pages/Companies'
 import Recruiters from './pages/Recruiters'
+
 import Login from './pages/Login'
 import Register from './pages/Register'
 import ForgotPassword from './pages/ForgotPassword'
+
 import EmployeeDashboard from './pages/EmployeeDashboard'
 import EmployerDashboard from './pages/EmployerDashboard'
+
+// =====================================================
+// RECRUITER APPLICANTS PAGE
+// =====================================================
+
+import EmployerApplicants from './pages/EmployerApplicants'
+
+// =====================================================
+// JOB / COMPANY / RECRUITER PAGES
+// =====================================================
+
 import JobDetails from './pages/JobDetails'
 import CompanyProfile from './pages/CompanyProfile'
 import RecruiterProfile from './pages/RecruiterProfile'
+
+// =====================================================
+// USER PAGES
+// =====================================================
+
 import Profile from './pages/Profile'
 import Settings from './pages/Settings'
+
+// =====================================================
+// INFO / MESSAGES
+// =====================================================
+
 import InfoPage from './pages/InfoPage'
+import Messages from './pages/Messages'
+
+// =====================================================
+// OTHER PAGES
+// =====================================================
+
 import ReferralEarn from './pages/ReferralEarn'
 import MyApplications from './pages/MyApplications'
 import SavedJobs from './pages/SavedJobs'
 import Resume from './pages/Resume'
 
+// =====================================================
+// APP
+// =====================================================
+
 function App() {
+
+  // =====================================================
+  // AUTH STATE
+  // =====================================================
+
   const [auth, setAuth] = useState(() => {
+
     if (typeof window === 'undefined') {
       return null
     }
 
     const saved = window.localStorage.getItem('onus-auth')
 
+    if (!saved) {
+      return null
+    }
+
     try {
-      return saved ? JSON.parse(saved) : null
-    } catch {
+
+      return JSON.parse(saved)
+
+    } catch (error) {
+
+      console.error(
+        'Invalid ONUS auth data:',
+        error
+      )
+
       window.localStorage.removeItem('onus-auth')
+
       return null
     }
   })
 
+  // =====================================================
+  // SAVE AUTH
+  // =====================================================
+
   useEffect(() => {
+
+    if (typeof window === 'undefined') {
+      return
+    }
+
     if (auth) {
+
       window.localStorage.setItem(
         'onus-auth',
         JSON.stringify(auth)
       )
+
     } else {
+
       window.localStorage.removeItem('onus-auth')
     }
+
   }, [auth])
 
+  // =====================================================
+  // LOGIN
+  // =====================================================
+
   function handleLogin(user) {
+
     setAuth(user)
   }
 
+  // =====================================================
+  // LOGOUT
+  // =====================================================
+
   function handleLogout() {
+
     setAuth(null)
-    window.localStorage.removeItem('onus_token')
+
+    if (typeof window !== 'undefined') {
+
+      window.localStorage.removeItem(
+        'onus-auth'
+      )
+
+      window.localStorage.removeItem(
+        'onus_token'
+      )
+    }
   }
 
+  // =====================================================
+  // ROLE HELPER
+  // =====================================================
+
+  const isRecruiter =
+    auth?.role?.toLowerCase() === 'recruiter'
+
+  // =====================================================
+  // RETURN
+  // =====================================================
+
   return (
+
     <BrowserRouter>
+
+      {/* =================================================
+          NAVBAR
+      ================================================= */}
+
       <Navbar
         auth={auth}
         onLogout={handleLogout}
       />
 
+      {/* =================================================
+          MAIN CONTENT
+      ================================================= */}
+
       <main className="min-h-screen">
+
         <Routes>
 
-          {/* HOME */}
+          {/* =================================================
+              HOME
+          ================================================= */}
+
           <Route
             path="/"
             element={
               auth ? (
                 <Navigate
                   to={
-                    auth.role === 'recruiter'
+                    isRecruiter
                       ? '/employer'
                       : '/employee'
                   }
@@ -98,7 +220,10 @@ function App() {
             }
           />
 
-          {/* PUBLIC ROUTES */}
+          {/* =================================================
+              PUBLIC JOB ROUTES
+          ================================================= */}
+
           <Route
             path="/jobs"
             element={<Jobs />}
@@ -139,6 +264,10 @@ function App() {
             element={<RecruiterProfile />}
           />
 
+          {/* =================================================
+              AUTH
+          ================================================= */}
+
           <Route
             path="/login"
             element={
@@ -164,7 +293,10 @@ function App() {
             element={<ForgotPassword />}
           />
 
-          {/* JOB SEEKER DASHBOARD */}
+          {/* =================================================
+              JOB SEEKER DASHBOARD
+          ================================================= */}
+
           <Route
             path="/employee"
             element={
@@ -172,12 +304,17 @@ function App() {
                 auth={auth}
                 requiredRole="job-seeker"
               >
-                <EmployeeDashboard auth={auth} />
+                <EmployeeDashboard
+                  auth={auth}
+                />
               </ProtectedRoute>
             }
           />
 
-          {/* RECRUITER DASHBOARD */}
+          {/* =================================================
+              RECRUITER DASHBOARD
+          ================================================= */}
+
           <Route
             path="/employer"
             element={
@@ -185,50 +322,154 @@ function App() {
                 auth={auth}
                 requiredRole="recruiter"
               >
-                <EmployerDashboard auth={auth} />
+                <EmployerDashboard
+                  auth={auth}
+                  page="dashboard"
+                />
               </ProtectedRoute>
             }
           />
 
-          {/* MY APPLICATIONS */}
+          {/* =================================================
+              RECRUITER - POSTED JOBS
+          ================================================= */}
+
           <Route
-             path="/applications"
-              element={
-               <ProtectedRoute auth={auth}
-               requiredRole="job-seeker"
-               >
-            <MyApplications />
-             </ProtectedRoute>
+            path="/employer/posted-jobs"
+            element={
+              <ProtectedRoute
+                auth={auth}
+                requiredRole="recruiter"
+              >
+                <EmployerDashboard
+                  auth={auth}
+                  page="posted-jobs"
+                />
+              </ProtectedRoute>
             }
           />
 
-          {/* SAVED JOBS */}
-              <Route
-                path="/saved-jobs"
-                element={
-                  <ProtectedRoute
-                    auth={auth}
-                    requiredRole="job-seeker"
-                  >
-                    <SavedJobs />
-                  </ProtectedRoute>
-                }
-              />
+          {/* =================================================
+              RECRUITER - EDIT JOBS
+          ================================================= */}
 
-         {/* RESUME */}
-              <Route
-                path="/resume"
-                element={
-                  <ProtectedRoute
-                    auth={auth}
-                    requiredRole="job-seeker"
-                  >
-                    <Resume />
-                  </ProtectedRoute>
-                }
-              />
-              
-          {/* PROFILE */}
+          <Route
+            path="/employer/edit-jobs"
+            element={
+              <ProtectedRoute
+                auth={auth}
+                requiredRole="recruiter"
+              >
+                <EditJobs />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* =================================================
+              OLD EDIT POSTS URL
+          ================================================= */}
+
+          <Route
+            path="/employer/edit-posts"
+            element={
+              <ProtectedRoute
+                auth={auth}
+                requiredRole="recruiter"
+              >
+                <EditJobs />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* =================================================
+              RECRUITER - APPLICANTS
+          ================================================= */}
+
+          <Route
+            path="/employer/applicants"
+            element={
+              <ProtectedRoute
+                auth={auth}
+                requiredRole="recruiter"
+              >
+                <EmployerApplicants
+                  auth={auth}
+                />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* =================================================
+              RECRUITER - COMPANY PROFILE
+          ================================================= */}
+
+          <Route
+            path="/employer/company-profile"
+            element={
+              <ProtectedRoute
+                auth={auth}
+                requiredRole="recruiter"
+              >
+                <EmployerDashboard
+                  auth={auth}
+                  page="company-profile"
+                />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* =================================================
+              JOB SEEKER - MY APPLICATIONS
+          ================================================= */}
+
+          <Route
+            path="/applications"
+            element={
+              <ProtectedRoute
+                auth={auth}
+                requiredRole="job-seeker"
+              >
+                <MyApplications />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* =================================================
+              JOB SEEKER - SAVED JOBS
+          ================================================= */}
+
+          <Route
+            path="/saved-jobs"
+            element={
+              <ProtectedRoute
+                auth={auth}
+                requiredRole="job-seeker"
+              >
+                <SavedJobs />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* =================================================
+              JOB SEEKER - RESUME
+          ================================================= */}
+
+          <Route
+            path="/resume"
+            element={
+              <ProtectedRoute
+                auth={auth}
+                requiredRole="job-seeker"
+              >
+                <Resume />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* =================================================
+              PROFILE
+          ================================================= */}
+
           <Route
             path="/profile"
             element={
@@ -238,7 +479,10 @@ function App() {
             }
           />
 
-          {/* SETTINGS */}
+          {/* =================================================
+              SETTINGS
+          ================================================= */}
+
           <Route
             path="/settings"
             element={
@@ -248,7 +492,24 @@ function App() {
             }
           />
 
-          {/* REFERRAL */}
+          {/* =================================================
+              MESSAGES
+              RECRUITER + JOB SEEKER
+          ================================================= */}
+
+          <Route
+            path="/messages"
+            element={
+              <ProtectedRoute auth={auth}>
+                <Messages auth={auth} />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* =================================================
+              REFERRAL & EARN
+          ================================================= */}
+
           <Route
             path="/referral-earn"
             element={
@@ -256,13 +517,20 @@ function App() {
             }
           />
 
-          {/* INFO PAGES */}
+          {/* =================================================
+              ABOUT
+          ================================================= */}
+
           <Route
             path="/about"
             element={
               <InfoPage title="About" />
             }
           />
+
+          {/* =================================================
+              CONTACT
+          ================================================= */}
 
           <Route
             path="/contact"
@@ -271,12 +539,20 @@ function App() {
             }
           />
 
+          {/* =================================================
+              PRIVACY
+          ================================================= */}
+
           <Route
             path="/privacy"
             element={
               <InfoPage title="Privacy Policy" />
             }
           />
+
+          {/* =================================================
+              TERMS
+          ================================================= */}
 
           <Route
             path="/terms"
@@ -285,18 +561,30 @@ function App() {
             }
           />
 
-          {/* UNKNOWN ROUTE */}
+          {/* =================================================
+              UNKNOWN ROUTE
+          ================================================= */}
+
           <Route
             path="*"
             element={
-              <Navigate to="/" replace />
+              <Navigate
+                to="/"
+                replace
+              />
             }
           />
 
         </Routes>
+
       </main>
 
+      {/* =================================================
+          FOOTER
+      ================================================= */}
+
       <Footer />
+
     </BrowserRouter>
   )
 }
