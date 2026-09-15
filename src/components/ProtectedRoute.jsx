@@ -6,9 +6,12 @@ export default function ProtectedRoute({
   children,
 }) {
   const location = useLocation()
+  const role = auth?.role?.toLowerCase()
+  const isValidAuth =
+    role === 'job-seeker' || role === 'recruiter'
 
   // User logged in nahi hai
-  if (!auth) {
+  if (!isValidAuth) {
     return (
       <Navigate
         to="/login"
@@ -21,10 +24,10 @@ export default function ProtectedRoute({
   // Required role check
   if (
     requiredRole &&
-    auth.role !== requiredRole
+    role !== requiredRole
   ) {
     // Recruiter ko recruiter dashboard
-    if (auth.role === 'recruiter') {
+    if (role === 'recruiter') {
       return (
         <Navigate
           to="/employer"
@@ -34,7 +37,7 @@ export default function ProtectedRoute({
     }
 
     // Job seeker ko employee dashboard
-    if (auth.role === 'job-seeker') {
+    if (role === 'job-seeker') {
       return (
         <Navigate
           to="/employee"

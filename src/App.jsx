@@ -173,6 +173,12 @@ function App() {
   const isRecruiter =
     auth?.role?.toLowerCase() === 'recruiter'
 
+  const isValidAuth =
+    auth?.role?.toLowerCase() === 'job-seeker' ||
+    auth?.role?.toLowerCase() === 'recruiter'
+
+  const effectiveAuth = isValidAuth ? auth : null
+
   // =====================================================
   // RETURN
   // =====================================================
@@ -186,7 +192,7 @@ function App() {
       ================================================= */}
 
       <Navbar
-        auth={auth}
+        auth={effectiveAuth}
         onLogout={handleLogout}
       />
 
@@ -205,7 +211,7 @@ function App() {
           <Route
             path="/"
             element={
-              auth ? (
+              effectiveAuth ? (
                 <Navigate
                   to={
                     isRecruiter
@@ -215,7 +221,7 @@ function App() {
                   replace
                 />
               ) : (
-                <Home />
+                <Home auth={effectiveAuth} />
               )
             }
           />
@@ -226,42 +232,74 @@ function App() {
 
           <Route
             path="/jobs"
-            element={<Jobs />}
+            element={
+              <ProtectedRoute auth={auth}>
+                <Jobs />
+              </ProtectedRoute>
+            }
           />
 
           <Route
             path="/jobs/:jobId"
-            element={<JobDetails />}
+            element={
+              <ProtectedRoute auth={auth}>
+                <JobDetails />
+              </ProtectedRoute>
+            }
           />
 
           <Route
             path="/fresher"
-            element={<FresherJobs />}
+            element={
+              <ProtectedRoute auth={auth}>
+                <FresherJobs />
+              </ProtectedRoute>
+            }
           />
 
           <Route
             path="/internships"
-            element={<Internships />}
+            element={
+              <ProtectedRoute auth={auth}>
+                <Internships />
+              </ProtectedRoute>
+            }
           />
 
           <Route
             path="/companies"
-            element={<Companies />}
+            element={
+              <ProtectedRoute auth={auth}>
+                <Companies />
+              </ProtectedRoute>
+            }
           />
 
           <Route
             path="/companies/:companySlug"
-            element={<CompanyProfile />}
+            element={
+              <ProtectedRoute auth={auth}>
+                <CompanyProfile />
+              </ProtectedRoute>
+            }
           />
 
           <Route
             path="/recruiters"
-            element={<Recruiters />}
+            element={
+              <ProtectedRoute auth={auth}>
+                <Recruiters />
+              </ProtectedRoute>
+            }
           />
 
           <Route
             path="/recruiters/:recruiterSlug"
-            element={<RecruiterProfile />}
+            element={
+              <ProtectedRoute auth={auth}>
+                <RecruiterProfile />
+              </ProtectedRoute>
+            }
           />
 
           {/* =================================================
@@ -272,7 +310,7 @@ function App() {
             path="/login"
             element={
               <Login
-                auth={auth}
+                auth={effectiveAuth}
                 onLogin={handleLogin}
               />
             }
@@ -282,7 +320,7 @@ function App() {
             path="/register"
             element={
               <Register
-                auth={auth}
+                auth={effectiveAuth}
                 onLogin={handleLogin}
               />
             }
@@ -513,7 +551,9 @@ function App() {
           <Route
             path="/referral-earn"
             element={
-              <ReferralEarn auth={auth} />
+              <ProtectedRoute auth={auth}>
+                <ReferralEarn auth={auth} />
+              </ProtectedRoute>
             }
           />
 
@@ -524,8 +564,38 @@ function App() {
           <Route
             path="/about"
             element={
-              <InfoPage title="About" />
+              <InfoPage title="About ONUS" pageKey="about" />
             }
+          />
+
+          <Route
+            path="/how-it-works"
+            element={<InfoPage title="How ONUS Works" pageKey="how-it-works" />}
+          />
+
+          <Route
+            path="/career-guidance"
+            element={<InfoPage title="Career Guidance" pageKey="career-guidance" />}
+          />
+
+          <Route
+            path="/help"
+            element={<InfoPage title="Help Center" pageKey="help" />}
+          />
+
+          <Route
+            path="/resume-tips"
+            element={<InfoPage title="Resume Tips" pageKey="resume-tips" />}
+          />
+
+          <Route
+            path="/interview-tips"
+            element={<InfoPage title="Interview Tips" pageKey="interview-tips" />}
+          />
+
+          <Route
+            path="/faq"
+            element={<InfoPage title="Frequently Asked Questions" pageKey="faq" />}
           />
 
           {/* =================================================
@@ -535,7 +605,7 @@ function App() {
           <Route
             path="/contact"
             element={
-              <InfoPage title="Contact" />
+              <InfoPage title="Contact ONUS" pageKey="contact" />
             }
           />
 
@@ -583,7 +653,7 @@ function App() {
           FOOTER
       ================================================= */}
 
-      <Footer />
+      <Footer auth={effectiveAuth} />
 
     </BrowserRouter>
   )

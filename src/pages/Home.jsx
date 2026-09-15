@@ -12,13 +12,15 @@ const featuredJobs = [
   { id: 4, title: 'UI/UX Designer', company: 'Infosys', salary: '₹5-8 LPA', description: 'Design intuitive user experiences.' },
 ]
 
-export default function Home() {
+export default function Home({ auth }) {
+  const isAuthenticated = !!auth
+
   return (
     <div className="bg-bg">
-      <Hero />
-      <Stats />
+      <Hero auth={auth} />
+      {isAuthenticated && <Stats />}
 
-      <section className="container-center py-12 sm:py-16">
+      {isAuthenticated && <section className="container-center py-12 sm:py-16">
         <div className="mb-8 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.28em] text-primary">Featured Jobs</p>
@@ -33,10 +35,10 @@ export default function Home() {
             <JobCard key={job.id} job={job} onApply={() => alert(`Applied to ${job.title}`)} />
           ))}
         </div>
-      </section>
+      </section>}
 
-      <Categories />
-      <Companies />
+      {isAuthenticated && <Categories />}
+      {isAuthenticated && <Companies />}
     </div>
   )
 }

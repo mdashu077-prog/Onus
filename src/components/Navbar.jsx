@@ -20,7 +20,7 @@ import {
 } from 'lucide-react'
 
 import { protectedRequest } from '../services/api'
-import { jobSeekerNavItems } from '../config/navigation'
+import { guestNavItems } from '../config/navigation'
 
 // =====================================================
 // RECRUITER NAVIGATION
@@ -75,6 +75,27 @@ const recruiterNavItems = [
   },
 ]
 
+const jobSeekerSidebarItems = [
+  { to: '/employee', label: 'Dashboard' },
+  { to: '/jobs', label: 'Jobs' },
+  { to: '/applications', label: 'Applications' },
+  { to: '/saved-jobs', label: 'Saved Jobs' },
+  { to: '/resume', label: 'Resume' },
+  { to: '/messages', label: 'Messages' },
+  { to: '/profile', label: 'Profile' },
+  { to: '/settings', label: 'Settings' },
+  { to: '/referral-earn', label: 'Referral & Earn' },
+]
+
+const recruiterSidebarItems = [
+  { type: 'link', to: '/employer', label: 'Dashboard' },
+  ...recruiterNavItems.filter((item) => item.id || item.to === '/recruiters'),
+  { type: 'link', to: '/messages', label: 'Messages' },
+  { type: 'link', to: '/profile', label: 'Profile' },
+  { type: 'link', to: '/settings', label: 'Settings' },
+  { type: 'link', to: '/referral-earn', label: 'Referral & Earn', icon: Gift },
+]
+
 // =====================================================
 // BADGE TEXT
 // =====================================================
@@ -106,6 +127,7 @@ export default function Navbar({ auth, onLogout }) {
   // =====================================================
 
   const headerRef = useRef(null)
+  const menuRef = useRef(null)
   const notificationsRef = useRef(null)
   const profileRef = useRef(null)
   const mobileProfileRef = useRef(null)
@@ -145,9 +167,21 @@ export default function Navbar({ auth, onLogout }) {
     !isRecruiter &&
     jobSeekerRoutes.includes(location.pathname)
 
-  const navItems = isRecruiter
-    ? recruiterNavItems
-    : jobSeekerNavItems
+  const isAuthenticated =
+    auth?.role?.toLowerCase() === 'job-seeker' ||
+    auth?.role?.toLowerCase() === 'recruiter'
+
+  const navItems = !isAuthenticated
+    ? []
+    : isRecruiter
+      ? recruiterNavItems
+      : guestNavItems
+
+  const sidebarNavItems = isRecruiter
+    ? recruiterSidebarItems
+    : isAuthenticated
+      ? jobSeekerSidebarItems
+      : guestNavItems
 
   const dashboardMenuItems = [
     {
@@ -324,9 +358,20 @@ export default function Navbar({ auth, onLogout }) {
       // MOBILE MENU
       // -----------------------------------------------
 
+      const clickedInsideHeader =
+        headerRef.current?.contains(event.target)
+
+      const clickedInsideMenu =
+        menuRef.current?.contains(event.target)
+
+      const clickedOverlay =
+        event.target instanceof Element &&
+        event.target.closest('[data-nav-menu-overlay]')
+
       if (
-        headerRef.current &&
-        !headerRef.current.contains(event.target)
+        !clickedInsideHeader &&
+        !clickedInsideMenu &&
+        !clickedOverlay
       ) {
         setMenuOpen(false)
       }
@@ -489,8 +534,20 @@ export default function Navbar({ auth, onLogout }) {
   // RENDER
   // =====================================================
 
+  const headerClasses =
+    'sticky top-0 z-50 border-b border-blue-500 bg-[#2563EB] text-white shadow-[0_12px_30px_rgba(15,23,42,0.16)]'
+
+  const iconBtnClasses =
+    'flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white transition hover:bg-white/20 hover:text-white'
+
+  const navLinkClasses =
+    'flex items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-2 text-sm font-medium text-white/90 transition hover:bg-white/10 hover:text-white'
+
+  const activeNavClasses =
+    'bg-white/15 text-white ring-1 ring-white/20'
+
   return (
-    <header className="sticky top-0 z-50 border-b border-blue-100 bg-[#2563EB] text-white shadow-[0_10px_30px_rgba(37,99,235,0.18)]">
+    <header className={headerClasses}>
 
       <div
         ref={headerRef}
@@ -503,6 +560,7 @@ export default function Navbar({ auth, onLogout }) {
 
         <div className="hidden h-20 items-center justify-between gap-4 px-4 lg:flex">
 
+          {isAuthenticated && (
           <button
             type="button"
             aria-label={
@@ -512,7 +570,7 @@ export default function Navbar({ auth, onLogout }) {
             }
             aria-expanded={menuOpen}
             onClick={(event) => {
-              if (location.pathname === '/employee') {
+              if (location.pathname === '/employee' && isAuthenticated && !isRecruiter) {
                 event?.preventDefault?.()
                 event?.stopPropagation?.()
 
@@ -535,10 +593,11 @@ export default function Navbar({ auth, onLogout }) {
 
               handleMenuToggle(event)
             }}
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/10 text-white transition hover:bg-white/15"
+            className={iconBtnClasses}
           >
             <Menu className="h-5 w-5" />
           </button>
+          )}
 
           {/* =================================================
               LOGO
@@ -547,18 +606,24 @@ export default function Navbar({ auth, onLogout }) {
           <NavLink
             to="/"
             onClick={closeAll}
-            className="flex items-center"
+            className="flex items-center gap-2"
           >
             <img
               src="/onus-logo.png"
               alt="ONUS logo"
-              className="h-14 w-14 object-contain"
+              className="h-16 w-16 object-contain"
               onError={(event) => {
                 event.currentTarget.onerror = null
                 event.currentTarget.src =
                   '/favicon.svg'
               }}
             />
+            {!isAuthenticated && (
+              <span className="hidden leading-tight sm:block">
+                <span className="block text-base font-black tracking-[0.08em] text-white">ONUS</span>
+                <span className="block text-[10px] font-semibold uppercase tracking-[0.2em] text-blue-100">Career Platform</span>
+              </span>
+            )}
           </NavLink>
 
           {/* =================================================
@@ -581,7 +646,11 @@ export default function Navbar({ auth, onLogout }) {
                   onClick={() =>
                     navClick(item)
                   }
-                  className="flex items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-2 text-sm font-medium text-blue-50 transition hover:bg-white/10 hover:text-white"
+                  className={`${navLinkClasses} ${
+                    location.pathname === (item.to || '')
+                      ? activeNavClasses
+                      : ''
+                  }`}
                 >
                   {Icon && (
                     <Icon className="h-4 w-4" />
@@ -600,10 +669,22 @@ export default function Navbar({ auth, onLogout }) {
 
           <div className="flex items-center gap-2 sm:gap-3">
 
+            {!isAuthenticated && (
+              <div className="flex items-center gap-2">
+                <Link to="/login" onClick={closeAll} className="rounded-full px-3 py-2 text-sm font-semibold text-white transition hover:bg-white/10">
+                  Sign In
+                </Link>
+                <Link to="/register" onClick={closeAll} className="rounded-full bg-white px-4 py-2 text-sm font-semibold text-blue-700 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:bg-blue-50 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-blue-600">
+                  Create Account
+                </Link>
+              </div>
+            )}
+
             {/* =================================================
                 NOTIFICATIONS
             ================================================= */}
 
+            {isAuthenticated && (
             <div
               ref={notificationsRef}
               className="relative"
@@ -618,7 +699,7 @@ export default function Navbar({ auth, onLogout }) {
 
                   setProfileOpen(false)
                 }}
-                className="relative flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white transition hover:bg-white/15"
+                className={iconBtnClasses}
               >
                 <Bell className="h-5 w-5" />
 
@@ -693,16 +774,18 @@ export default function Navbar({ auth, onLogout }) {
                 </div>
               )}
             </div>
+            )}
 
             {/* =================================================
                 MESSAGE ICON
             ================================================= */}
 
+            {isAuthenticated && (
             <button
               type="button"
               aria-label="Messages"
               onClick={messages}
-              className="relative flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white transition hover:bg-white/15"
+              className={`${iconBtnClasses} relative`}
             >
               <MessageCircle className="h-5 w-5" />
 
@@ -714,11 +797,13 @@ export default function Navbar({ auth, onLogout }) {
                 </span>
               )}
             </button>
+            )}
 
             {/* =================================================
                 PROFILE
             ================================================= */}
 
+            {isAuthenticated && (
             <div
               ref={profileRef}
               className="relative"
@@ -733,7 +818,7 @@ export default function Navbar({ auth, onLogout }) {
 
                   setNotificationsOpen(false)
                 }}
-                className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white transition hover:bg-white/15"
+                className={iconBtnClasses}
               >
                 <User className="h-5 w-5" />
               </button>
@@ -741,7 +826,7 @@ export default function Navbar({ auth, onLogout }) {
               {profileOpen && (
                 <div className="absolute right-0 top-12 z-50 w-56 rounded-2xl border border-slate-200 bg-white p-2 shadow-xl">
 
-                  {!auth ? (
+                  {!isAuthenticated ? (
                     <>
                       <Link
                         to="/login"
@@ -830,6 +915,7 @@ export default function Navbar({ auth, onLogout }) {
                 </div>
               )}
             </div>
+            )}
 
           </div>
         </div>
@@ -846,6 +932,7 @@ export default function Navbar({ auth, onLogout }) {
 
           <div className="flex items-center gap-2">
 
+            {isAuthenticated && (
             <button
               type="button"
               aria-label={
@@ -854,26 +941,53 @@ export default function Navbar({ auth, onLogout }) {
                   : 'Open navigation menu'
               }
               aria-expanded={menuOpen}
-              onClick={handleMenuToggle}
-              className="relative z-[70] flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white transition hover:bg-white/15"
+              onClick={(event) => {
+                event?.preventDefault?.()
+                event?.stopPropagation?.()
+
+                if (location.pathname === '/employee' && isAuthenticated && !isRecruiter) {
+                  window.dispatchEvent(
+                    new CustomEvent('onus:open-dashboard-sidebar', {
+                      detail: { toggle: true },
+                    })
+                  )
+                  setMenuOpen(false)
+                  setProfileOpen(false)
+                  setNotificationsOpen(false)
+                  return
+                }
+
+                setMenuOpen((value) => !value)
+                setProfileOpen(false)
+                setNotificationsOpen(false)
+              }}
+              className={iconBtnClasses}
             >
               <Menu className="h-5 w-5" />
             </button>
+            )}
 
             <NavLink
               to="/"
               onClick={closeAll}
+              className="flex items-center gap-2"
             >
               <img
                 src="/onus-logo.png"
                 alt="ONUS logo"
-                className="h-12 w-12 object-contain"
+                className="h-14 w-14 object-contain"
                 onError={(event) => {
                   event.currentTarget.onerror = null
                   event.currentTarget.src =
                     '/favicon.svg'
                 }}
               />
+              {!isAuthenticated && (
+                <span className="leading-tight">
+                  <span className="block text-sm font-black tracking-[0.08em] text-white">ONUS</span>
+                  <span className="block text-[8px] font-semibold uppercase tracking-[0.16em] text-blue-100">Career Platform</span>
+                </span>
+              )}
             </NavLink>
 
           </div>
@@ -886,6 +1000,7 @@ export default function Navbar({ auth, onLogout }) {
 
             {/* MOBILE NOTIFICATIONS */}
 
+            {isAuthenticated && (
             <button
               type="button"
               aria-label="Notifications"
@@ -897,7 +1012,7 @@ export default function Navbar({ auth, onLogout }) {
                 setMenuOpen(false)
                 setProfileOpen(false)
               }}
-              className="relative flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white transition hover:bg-white/15"
+              className={iconBtnClasses}
             >
               <Bell className="h-5 w-5" />
 
@@ -909,14 +1024,16 @@ export default function Navbar({ auth, onLogout }) {
                 </span>
               )}
             </button>
+            )}
 
             {/* MOBILE MESSAGES */}
 
+            {isAuthenticated && (
             <button
               type="button"
               aria-label="Messages"
               onClick={messages}
-              className="relative flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white transition hover:bg-white/15"
+              className={iconBtnClasses}
             >
               <MessageCircle className="h-5 w-5" />
 
@@ -928,9 +1045,11 @@ export default function Navbar({ auth, onLogout }) {
                 </span>
               )}
             </button>
+            )}
 
             {/* MOBILE PROFILE */}
 
+            {isAuthenticated && (
             <div
               ref={mobileProfileRef}
               className="relative"
@@ -946,7 +1065,7 @@ export default function Navbar({ auth, onLogout }) {
                   setMenuOpen(false)
                   setNotificationsOpen(false)
                 }}
-                className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white transition hover:bg-white/15"
+                className={iconBtnClasses}
               >
                 <User className="h-5 w-5" />
               </button>
@@ -1019,6 +1138,18 @@ export default function Navbar({ auth, onLogout }) {
                 </div>
               )}
             </div>
+            )}
+
+            {!isAuthenticated && (
+              <div className="flex items-center gap-1">
+                <Link to="/login" onClick={closeAll} className="rounded-full px-2 py-2 text-xs font-semibold text-white transition hover:bg-white/10">
+                  Sign In
+                </Link>
+                <Link to="/register" onClick={closeAll} className="rounded-full bg-white px-3 py-2 text-xs font-semibold text-blue-700 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:bg-blue-50 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-blue-600">
+                  Create Account
+                </Link>
+              </div>
+            )}
 
           </div>
         </div>
@@ -1027,17 +1158,22 @@ export default function Navbar({ auth, onLogout }) {
             MOBILE MENU
         ===================================================== */}
 
-        {menuOpen && (
+        {isAuthenticated && menuOpen && (
           <>
             <button
               type="button"
               aria-label="Close navigation menu"
+              data-nav-menu-overlay
               onClick={() => setMenuOpen(false)}
-              className="fixed inset-0 z-40 bg-slate-950/30"
+              className="fixed inset-0 z-30 bg-slate-950/30"
             />
 
-            <aside className="fixed inset-y-0 left-0 z-50 w-[min(86vw,320px)] overflow-y-auto border-r border-slate-200 bg-white shadow-[10px_0_35px_rgba(15,23,42,0.05)] lg:w-[320px]">
-              <div className="flex h-24 shrink-0 items-center justify-between border-b border-slate-100 px-5">
+            <aside
+              ref={menuRef}
+              data-nav-menu-root
+              className="fixed bottom-0 left-0 top-16 z-40 w-[min(86vw,320px)] overflow-y-auto border-r border-blue-700 bg-[#1d4ed8] text-white shadow-[10px_0_35px_rgba(15,23,42,0.2)] sm:top-20 lg:top-20 lg:w-[320px]"
+            >
+              <div className="flex h-24 shrink-0 items-center justify-between border-b border-white/15 px-5">
                 <div className="flex items-center gap-3">
                   <img
                     src="/onus-logo.png"
@@ -1050,10 +1186,10 @@ export default function Navbar({ auth, onLogout }) {
                   />
 
                   <div>
-                    <p className="text-lg font-black tracking-tight text-slate-900">
+                    <p className="text-lg font-black tracking-tight text-white">
                       ONUS
                     </p>
-                    <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-slate-400">
+                    <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-blue-100">
                       Career Platform
                     </p>
                   </div>
@@ -1063,23 +1199,23 @@ export default function Navbar({ auth, onLogout }) {
                   type="button"
                   aria-label="Close sidebar"
                   onClick={() => setMenuOpen(false)}
-                  className="rounded-lg p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+                  className="rounded-lg p-2 text-blue-100 transition hover:bg-white/10 hover:text-white"
                 >
                   <X className="h-5 w-5" />
                 </button>
               </div>
 
               <nav className="min-h-0 flex-1 overflow-y-auto p-4">
-                <p className="px-3 pb-3 text-[9px] font-bold uppercase tracking-[0.2em] text-slate-400">
+                <p className="px-3 pb-3 text-[9px] font-bold uppercase tracking-[0.2em] text-blue-100">
                   Menu
                 </p>
 
                 <div className="space-y-1">
-                  <p className="px-3 pb-2 text-[9px] font-bold uppercase tracking-[0.2em] text-slate-400">
+                  <p className="px-3 pb-2 text-[9px] font-bold uppercase tracking-[0.2em] text-blue-100">
                     Explore
                   </p>
 
-                  {navItems.map((item) => (
+                  {sidebarNavItems.map((item) => (
                     <button
                       key={item.id || item.to || item.label}
                       type="button"
@@ -1091,8 +1227,8 @@ export default function Navbar({ auth, onLogout }) {
                         flex w-full items-center rounded-xl px-3 py-3 text-left text-sm font-medium transition
                         ${
                           location.pathname === item.to
-                            ? 'bg-blue-50 text-blue-600'
-                            : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                            ? 'bg-white/15 text-white'
+                            : 'text-white/90 hover:bg-white/10 hover:text-white'
                         }
                       `}
                     >
@@ -1100,36 +1236,6 @@ export default function Navbar({ auth, onLogout }) {
                     </button>
                   ))}
 
-                  {auth && (
-                    <>
-                      <div className="my-3 border-t border-slate-100" />
-
-                      <p className="px-3 pb-2 text-[9px] font-bold uppercase tracking-[0.2em] text-slate-400">
-                        Dashboard
-                      </p>
-
-                      {dashboardMenuItems.map((item) => (
-                        <button
-                          key={item.path}
-                          type="button"
-                          onClick={() => {
-                            closeAll()
-                            navigate(item.path)
-                          }}
-                          className={`
-                            flex w-full items-center rounded-xl px-3 py-3 text-left text-sm font-medium transition
-                            ${
-                              location.pathname === item.path
-                                ? 'bg-blue-50 text-blue-600'
-                                : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
-                            }
-                          `}
-                        >
-                          {item.label}
-                        </button>
-                      ))}
-                    </>
-                  )}
                 </div>
               </nav>
             </aside>

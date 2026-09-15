@@ -105,22 +105,22 @@ export default function Login({ auth, onLogin }) {
     <section className="relative min-h-screen overflow-hidden bg-[#F8FAFC] text-slate-900">
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
         <div className="absolute -left-16 top-16 h-80 w-80 rounded-full bg-blue-100/80 blur-3xl" />
-        <div className="absolute right-0 top-28 h-96 w-96 rounded-full bg-blue-200/40 blur-3xl" />
-        <div className="absolute bottom-0 left-1/3 h-72 w-72 rounded-full bg-indigo-100/60 blur-3xl" />
+        <div className="absolute right-0 top-28 h-[26rem] w-[26rem] rounded-full bg-blue-200/40 blur-3xl" />
+        <div className="absolute bottom-[-6rem] left-1/3 h-72 w-72 rounded-full bg-indigo-100/70 blur-3xl" />
       </div>
 
-      <div className="relative z-10 mx-auto max-w-[1280px] px-4 pb-12 pt-5 sm:px-6 lg:px-8">
-        <div className="grid min-h-[calc(100vh-88px)] items-center gap-8 lg:grid-cols-[1.08fr_0.92fr] lg:gap-12">
-          <div className="flex flex-col justify-center">
+      <div className="relative z-10 mx-auto max-w-[1280px] px-4 pb-10 pt-4 sm:px-6 lg:px-8">
+        <div className="grid min-h-[calc(100vh-110px)] items-center gap-8 lg:grid-cols-[1.08fr_0.92fr] lg:gap-14">
+          <div className="animate-fade-up flex flex-col justify-center">
             <div className="mb-8 flex items-center gap-3 text-sm font-medium text-slate-600">
-              <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-blue-100 text-blue-600">
+              <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-blue-100 text-blue-600 shadow-sm ring-1 ring-blue-100">
                 <Sparkles className="h-4 w-4" />
               </span>
               Career platform
             </div>
 
             <div className="max-w-xl">
-              <h1 className="text-4xl font-black leading-[1.02] tracking-[-0.04em] text-slate-900 sm:text-5xl lg:text-[4.2rem]">
+              <h1 className="text-4xl font-black leading-[1.02] tracking-[-0.05em] text-slate-900 sm:text-5xl lg:text-[4.1rem]">
                 Find Your
                 <span className="mt-2 block text-[#2563EB]">
                   Dream Job
@@ -136,9 +136,9 @@ export default function Login({ auth, onLogin }) {
               {featureList.map(({ icon: Icon, title, text }) => (
                 <div
                   key={title}
-                  className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white/60 p-3 shadow-[0_10px_25px_rgba(15,23,42,0.03)] backdrop-blur-sm"
+                  className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white/70 p-3 shadow-[0_12px_30px_rgba(15,23,42,0.04)] backdrop-blur-sm"
                 >
-                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600 ring-1 ring-blue-100">
                     <Icon className="h-5 w-5" />
                   </div>
 
@@ -154,18 +154,18 @@ export default function Login({ auth, onLogin }) {
               ))}
             </div>
 
-            <div className="mt-8 flex items-center justify-center rounded-[28px] border border-slate-200 bg-white/80 p-4 shadow-[0_20px_45px_rgba(37,99,235,0.08)] backdrop-blur-sm lg:max-w-[560px]">
-              <div className="w-full rounded-[22px] bg-gradient-to-br from-blue-50 via-white to-sky-50 p-4 shadow-inner">
+            <div className="mt-8 flex items-center justify-center rounded-[28px] border border-slate-200 bg-white/80 p-4 shadow-[0_24px_60px_rgba(37,99,235,0.08)] backdrop-blur-sm lg:max-w-[560px]">
+              <div className="w-full rounded-[22px] bg-gradient-to-br from-blue-50 via-white to-sky-50 p-4 shadow-inner ring-1 ring-blue-100/70">
                 <div className="flex items-center justify-between border-b border-slate-200 pb-3">
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">
+                    <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-slate-400">
                       Jobs
                     </p>
                     <p className="mt-1 text-lg font-bold text-slate-900">
                       Top opportunities
                     </p>
                   </div>
-                  <div className="rounded-full bg-blue-600 px-3 py-1 text-xs font-semibold text-white">
+                  <div className="rounded-full bg-blue-600 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-white">
                     24 live
                   </div>
                 </div>
@@ -178,7 +178,7 @@ export default function Login({ auth, onLogin }) {
                   ].map(([title, company, type]) => (
                     <div
                       key={title}
-                      className="flex items-center justify-between rounded-2xl border border-slate-200 bg-white p-3"
+                      className="flex items-center justify-between rounded-2xl border border-slate-200 bg-white p-3 shadow-sm"
                     >
                       <div>
                         <p className="text-sm font-semibold text-slate-900">
@@ -198,7 +198,7 @@ export default function Login({ auth, onLogin }) {
             </div>
           </div>
 
-          <div className="flex items-center justify-center">
+          <div className="animate-fade-up flex items-center justify-center">
             <div className="w-full max-w-[500px] rounded-[28px] border border-slate-200 bg-white p-6 shadow-[0_24px_60px_rgba(15,23,42,0.09)] sm:p-8 lg:p-9">
               <div className="mb-7">
                 <p className="text-[11px] font-bold uppercase tracking-[0.28em] text-blue-600">
@@ -218,7 +218,7 @@ export default function Login({ auth, onLogin }) {
                   onClick={() => setRole('job-seeker')}
                   className={`rounded-xl px-3 py-2.5 text-sm font-semibold transition ${
                     role === 'job-seeker'
-                      ? 'bg-white text-slate-900 shadow-sm'
+                      ? 'bg-white text-slate-900 shadow-sm ring-1 ring-slate-200'
                       : 'text-slate-500 hover:text-slate-700'
                   }`}
                 >
@@ -230,7 +230,7 @@ export default function Login({ auth, onLogin }) {
                   onClick={() => setRole('recruiter')}
                   className={`rounded-xl px-3 py-2.5 text-sm font-semibold transition ${
                     role === 'recruiter'
-                      ? 'bg-white text-slate-900 shadow-sm'
+                      ? 'bg-white text-slate-900 shadow-sm ring-1 ring-slate-200'
                       : 'text-slate-500 hover:text-slate-700'
                   }`}
                 >
@@ -303,7 +303,10 @@ export default function Login({ auth, onLogin }) {
                 </div>
 
                 {error && (
-                  <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                  <div
+                    aria-live="polite"
+                    className="rounded-xl border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-700"
+                  >
                     <div className="flex items-center gap-2">
                       <CheckCircle2 className="h-4 w-4 text-red-600" />
                       <span>{error}</span>
@@ -314,7 +317,7 @@ export default function Login({ auth, onLogin }) {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#2563EB] px-4 py-3.5 text-base font-semibold text-white transition hover:bg-[#1d4ed8] disabled:cursor-not-allowed disabled:opacity-70"
+                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#2563EB] px-4 py-3.5 text-base font-semibold text-white shadow-[0_12px_22px_rgba(37,99,235,0.22)] transition duration-200 hover:bg-[#1d4ed8] hover:shadow-[0_16px_24px_rgba(37,99,235,0.28)] disabled:cursor-not-allowed disabled:opacity-70"
                 >
                   {loading ? 'Signing in...' : 'Sign In'}
                   {!loading && <ArrowRight className="h-4 w-4" />}

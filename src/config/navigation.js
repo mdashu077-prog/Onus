@@ -1,4 +1,4 @@
-export const jobSeekerNavItems = [
+export const guestNavItems = [
   {
     to: '/',
     label: 'Home',
@@ -28,3 +28,5 @@ export const jobSeekerNavItems = [
     label: 'Referral & Earn',
   },
 ]
+
+export const jobSeekerNavItems = guestNavItems
