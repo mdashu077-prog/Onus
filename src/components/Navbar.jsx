@@ -77,15 +77,26 @@ const recruiterNavItems = [
 
 const jobSeekerSidebarItems = [
   { to: '/employee', label: 'Dashboard' },
-  { to: '/jobs', label: 'Jobs' },
+  { to: '/jobs', label: 'Find Jobs' },
+  { to: '/fresher', label: 'Fresher Jobs' },
+  { to: '/internships', label: 'Internships' },
+  { to: '/companies', label: 'Companies' },
+  { to: '/recruiters', label: 'Recruiters' },
   { to: '/applications', label: 'Applications' },
   { to: '/saved-jobs', label: 'Saved Jobs' },
+  { to: '/saved-posts', label: 'Saved Posts' },
   { to: '/resume', label: 'Resume' },
   { to: '/messages', label: 'Messages' },
   { to: '/profile', label: 'Profile' },
   { to: '/settings', label: 'Settings' },
   { to: '/referral-earn', label: 'Referral & Earn' },
 ]
+
+const jobSeekerHomeItem = {
+  type: 'link',
+  to: '/employee',
+  label: 'Home',
+}
 
 const recruiterSidebarItems = [
   { type: 'link', to: '/employer', label: 'Dashboard' },
@@ -96,12 +107,27 @@ const recruiterSidebarItems = [
   { type: 'link', to: '/referral-earn', label: 'Referral & Earn', icon: Gift },
 ]
 
+const adminSidebarItems = [
+  { to: '/admin', label: 'Dashboard' },
+  { to: '/admin', label: 'Users' },
+  { to: '/admin', label: 'Recruiters' },
+  { to: '/admin', label: 'Job Seekers' },
+  { to: '/admin', label: 'Jobs' },
+  { to: '/admin', label: 'Applications' },
+  { to: '/admin', label: 'Companies' },
+  { to: '/admin', label: 'Settings' },
+]
+
 // =====================================================
 // BADGE TEXT
 // =====================================================
 
 const badgeText = (count) => {
   const value = Number(count || 0)
+
+  if (value > 99) {
+    return '99+'
+  }
 
   return value > 9 ? '9+' : String(value)
 }
@@ -146,6 +172,17 @@ export default function Navbar({ auth, onLogout }) {
   const isRecruiter =
     auth?.role?.toLowerCase() === 'recruiter'
 
+  const isAdmin =
+    auth?.role?.toLowerCase() === 'admin'
+
+  const isAuthenticated =
+    auth?.role?.toLowerCase() === 'job-seeker' ||
+    auth?.role?.toLowerCase() === 'recruiter' ||
+    auth?.role?.toLowerCase() === 'admin'
+
+  const isJobSeeker =
+    isAuthenticated && !isRecruiter && !isAdmin
+
   const jobSeekerRoutes = [
     '/employee',
     '/jobs',
@@ -156,6 +193,7 @@ export default function Navbar({ auth, onLogout }) {
     '/referral-earn',
     '/applications',
     '/saved-jobs',
+    '/saved-posts',
     '/resume',
     '/messages',
     '/profile',
@@ -167,21 +205,47 @@ export default function Navbar({ auth, onLogout }) {
     !isRecruiter &&
     jobSeekerRoutes.includes(location.pathname)
 
-  const isAuthenticated =
-    auth?.role?.toLowerCase() === 'job-seeker' ||
-    auth?.role?.toLowerCase() === 'recruiter'
-
   const navItems = !isAuthenticated
     ? []
-    : isRecruiter
-      ? recruiterNavItems
-      : guestNavItems
+    : isAdmin
+      ? []
+      : isRecruiter
+        ? recruiterNavItems
+        : [jobSeekerHomeItem, ...guestNavItems.filter((item) => item.label !== 'Home')]
 
-  const sidebarNavItems = isRecruiter
-    ? recruiterSidebarItems
-    : isAuthenticated
-      ? jobSeekerSidebarItems
-      : guestNavItems
+  const sidebarNavItems = isAdmin
+    ? adminSidebarItems
+    : isRecruiter
+      ? recruiterSidebarItems
+      : isJobSeeker
+        ? jobSeekerSidebarItems
+        : guestNavItems
+
+  const isSidebarActiveItem = (item) => {
+    if (!item?.to) {
+      return false
+    }
+
+    const currentPath = location.pathname
+
+    if (currentPath === item.to) {
+      return true
+    }
+
+    const jobsRelatedRoutes = [
+      '/jobs',
+      '/fresher',
+      '/internships',
+      '/companies',
+      '/recruiters',
+    ]
+
+    if (jobsRelatedRoutes.includes(item.to)) {
+      return jobsRelatedRoutes.includes(currentPath)
+    }
+
+    return false
+  }
 
   const dashboardMenuItems = [
     {
@@ -199,6 +263,10 @@ export default function Navbar({ auth, onLogout }) {
     {
       label: 'Saved Jobs',
       path: '/saved-jobs',
+    },
+    {
+      label: 'Saved Posts',
+      path: '/saved-posts',
     },
     {
       label: 'Resume',
@@ -338,12 +406,19 @@ export default function Navbar({ auth, onLogout }) {
   useEffect(() => {
     loadBadges()
 
+    const refreshBadges = () => {
+      loadBadges()
+    }
+
+    window.addEventListener('onus:messages-updated', refreshBadges)
+
     const timer = window.setInterval(
       loadBadges,
       30000
     )
 
     return () => {
+      window.removeEventListener('onus:messages-updated', refreshBadges)
       window.clearInterval(timer)
     }
   }, [auth, isRecruiter])
@@ -850,11 +925,11 @@ export default function Navbar({ auth, onLogout }) {
                         type="button"
                         onClick={() => {
                           closeAll()
-                          navigate('/profile')
+                          navigate(isAdmin ? '/admin' : '/profile')
                         }}
                         className="block w-full rounded-xl px-3 py-2 text-left text-sm font-medium text-slate-700 hover:bg-slate-50"
                       >
-                        My Profile
+                        {isAdmin ? 'Admin Profile' : 'My Profile'}
                       </button>
 
                       <button
@@ -863,14 +938,16 @@ export default function Navbar({ auth, onLogout }) {
                           closeAll()
 
                           navigate(
-                            isRecruiter
-                              ? '/employer'
-                              : '/employee'
+                            isAdmin
+                              ? '/admin'
+                              : isRecruiter
+                                ? '/employer'
+                                : '/employee'
                           )
                         }}
                         className="mt-1 block w-full rounded-xl px-3 py-2 text-left text-sm font-medium text-slate-700 hover:bg-slate-50"
                       >
-                        Dashboard
+                        {isAdmin ? 'Admin Dashboard' : 'Dashboard'}
                       </button>
 
                       <button
@@ -924,13 +1001,13 @@ export default function Navbar({ auth, onLogout }) {
             MOBILE NAVBAR
         ===================================================== */}
 
-        <div className="flex h-16 items-center justify-between gap-3 px-3 sm:h-20 sm:px-4 lg:hidden">
+        <div className="flex h-14 items-center justify-between gap-2 px-3 sm:h-16 sm:px-4 lg:hidden">
 
           {/* =================================================
               MOBILE LEFT
           ================================================= */}
 
-          <div className="flex items-center gap-2">
+          <div className="flex min-w-0 items-center gap-2">
 
             {isAuthenticated && (
             <button
@@ -970,12 +1047,12 @@ export default function Navbar({ auth, onLogout }) {
             <NavLink
               to="/"
               onClick={closeAll}
-              className="flex items-center gap-2"
+              className="flex min-w-0 items-center gap-2.5"
             >
               <img
                 src="/onus-logo.png"
                 alt="ONUS logo"
-                className="h-14 w-14 object-contain"
+                className="h-8 w-8 object-contain sm:h-10 sm:w-10"
                 onError={(event) => {
                   event.currentTarget.onerror = null
                   event.currentTarget.src =
@@ -983,9 +1060,9 @@ export default function Navbar({ auth, onLogout }) {
                 }}
               />
               {!isAuthenticated && (
-                <span className="leading-tight">
-                  <span className="block text-sm font-black tracking-[0.08em] text-white">ONUS</span>
-                  <span className="block text-[8px] font-semibold uppercase tracking-[0.16em] text-blue-100">Career Platform</span>
+                <span className="leading-none">
+                  <span className="block text-[0.9rem] font-bold tracking-[0.08em] text-white">ONUS</span>
+                  <span className="mt-0.5 block text-[7px] font-medium uppercase tracking-[0.18em] text-blue-100">Career Platform</span>
                 </span>
               )}
             </NavLink>
@@ -996,7 +1073,26 @@ export default function Navbar({ auth, onLogout }) {
               MOBILE RIGHT
           ================================================= */}
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2">
+
+            {!isAuthenticated && (
+              <div className="flex items-center gap-1.5 sm:gap-2">
+                <Link
+                  to="/login"
+                  onClick={closeAll}
+                  className="rounded-full px-2.5 py-1.5 text-[11px] font-semibold text-white transition hover:bg-white/10 sm:px-3 sm:py-2 sm:text-sm"
+                >
+                  Sign In
+                </Link>
+                <Link
+                  to="/register"
+                  onClick={closeAll}
+                  className="rounded-full bg-white px-2.5 py-1.5 text-[11px] font-semibold text-blue-700 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:bg-blue-50 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-blue-600 sm:px-3 sm:py-2 sm:text-sm"
+                >
+                  Create Account
+                </Link>
+              </div>
+            )}
 
             {/* MOBILE NOTIFICATIONS */}
 
@@ -1077,11 +1173,11 @@ export default function Navbar({ auth, onLogout }) {
                     type="button"
                     onClick={() => {
                       closeAll()
-                      navigate('/profile')
+                      navigate(isAdmin ? '/admin' : '/profile')
                     }}
                     className="block w-full rounded-xl px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50"
                   >
-                    My Profile
+                    {isAdmin ? 'Admin Profile' : 'My Profile'}
                   </button>
 
                   <button
@@ -1090,14 +1186,16 @@ export default function Navbar({ auth, onLogout }) {
                       closeAll()
 
                       navigate(
-                        isRecruiter
-                          ? '/employer'
-                          : '/employee'
+                        isAdmin
+                          ? '/admin'
+                          : isRecruiter
+                            ? '/employer'
+                            : '/employee'
                       )
                     }}
                     className="mt-1 block w-full rounded-xl px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50"
                   >
-                    Dashboard
+                    {isAdmin ? 'Admin Dashboard' : 'Dashboard'}
                   </button>
 
                   <button
@@ -1140,16 +1238,6 @@ export default function Navbar({ auth, onLogout }) {
             </div>
             )}
 
-            {!isAuthenticated && (
-              <div className="flex items-center gap-1">
-                <Link to="/login" onClick={closeAll} className="rounded-full px-2 py-2 text-xs font-semibold text-white transition hover:bg-white/10">
-                  Sign In
-                </Link>
-                <Link to="/register" onClick={closeAll} className="rounded-full bg-white px-3 py-2 text-xs font-semibold text-blue-700 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:bg-blue-50 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-blue-600">
-                  Create Account
-                </Link>
-              </div>
-            )}
 
           </div>
         </div>
@@ -1165,15 +1253,21 @@ export default function Navbar({ auth, onLogout }) {
               aria-label="Close navigation menu"
               data-nav-menu-overlay
               onClick={() => setMenuOpen(false)}
-              className="fixed inset-0 z-30 bg-slate-950/30"
+              className="fixed inset-0 z-30 bg-slate-950/25"
             />
 
             <aside
               ref={menuRef}
               data-nav-menu-root
-              className="fixed bottom-0 left-0 top-16 z-40 w-[min(86vw,320px)] overflow-y-auto border-r border-blue-700 bg-[#1d4ed8] text-white shadow-[10px_0_35px_rgba(15,23,42,0.2)] sm:top-20 lg:top-20 lg:w-[320px]"
+              className={`fixed bottom-0 left-0 top-16 z-40 w-[min(86vw,320px)] overflow-y-auto border-r shadow-[10px_0_35px_rgba(15,23,42,0.08)] transition-transform duration-300 ease-in-out sm:top-20 lg:top-20 lg:w-[320px] ${
+                isRecruiter
+                  ? 'border-blue-700 bg-[#1d4ed8] text-white'
+                  : 'border-slate-200 bg-white text-slate-900'
+              }`}
             >
-              <div className="flex h-24 shrink-0 items-center justify-between border-b border-white/15 px-5">
+              <div className={`flex h-24 shrink-0 items-center justify-between border-b px-5 ${
+                isRecruiter ? 'border-white/15' : 'border-slate-100'
+              }`}>
                 <div className="flex items-center gap-3">
                   <img
                     src="/onus-logo.png"
@@ -1186,10 +1280,14 @@ export default function Navbar({ auth, onLogout }) {
                   />
 
                   <div>
-                    <p className="text-lg font-black tracking-tight text-white">
+                    <p className={`text-lg font-black tracking-tight ${
+                      isRecruiter ? 'text-white' : 'text-slate-900'
+                    }`}>
                       ONUS
                     </p>
-                    <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-blue-100">
+                    <p className={`text-[9px] font-bold uppercase tracking-[0.2em] ${
+                      isRecruiter ? 'text-blue-100' : 'text-slate-400'
+                    }`}>
                       Career Platform
                     </p>
                   </div>
@@ -1199,42 +1297,58 @@ export default function Navbar({ auth, onLogout }) {
                   type="button"
                   aria-label="Close sidebar"
                   onClick={() => setMenuOpen(false)}
-                  className="rounded-lg p-2 text-blue-100 transition hover:bg-white/10 hover:text-white"
+                  className={`rounded-lg p-2 transition ${
+                    isRecruiter
+                      ? 'text-blue-100 hover:bg-white/10 hover:text-white'
+                      : 'text-slate-400 hover:bg-slate-100 hover:text-slate-700'
+                  }`}
                 >
                   <X className="h-5 w-5" />
                 </button>
               </div>
 
               <nav className="min-h-0 flex-1 overflow-y-auto p-4">
-                <p className="px-3 pb-3 text-[9px] font-bold uppercase tracking-[0.2em] text-blue-100">
+                <p className={`px-3 pb-3 text-[9px] font-bold uppercase tracking-[0.2em] ${
+                  isRecruiter ? 'text-blue-100' : 'text-slate-400'
+                }`}>
                   Menu
                 </p>
 
                 <div className="space-y-1">
-                  <p className="px-3 pb-2 text-[9px] font-bold uppercase tracking-[0.2em] text-blue-100">
+                  <p className={`px-3 pb-2 text-[9px] font-bold uppercase tracking-[0.2em] ${
+                    isRecruiter ? 'text-blue-100' : 'text-slate-400'
+                  }`}>
                     Explore
                   </p>
 
-                  {sidebarNavItems.map((item) => (
-                    <button
-                      key={item.id || item.to || item.label}
-                      type="button"
-                      onClick={() => {
-                        navClick(item)
-                        setMenuOpen(false)
-                      }}
-                      className={`
-                        flex w-full items-center rounded-xl px-3 py-3 text-left text-sm font-medium transition
-                        ${
-                          location.pathname === item.to
-                            ? 'bg-white/15 text-white'
-                            : 'text-white/90 hover:bg-white/10 hover:text-white'
-                        }
-                      `}
-                    >
-                      {item.label}
-                    </button>
-                  ))}
+                  {sidebarNavItems.map((item) => {
+                    const active = isSidebarActiveItem(item)
+
+                    return (
+                      <button
+                        key={item.id || item.to || item.label}
+                        type="button"
+                        onClick={() => {
+                          navClick(item)
+                          setMenuOpen(false)
+                        }}
+                        className={`
+                          flex w-full items-center rounded-xl px-3 py-3 text-left text-sm font-medium transition
+                          ${
+                            active
+                              ? isRecruiter
+                                ? 'bg-white/15 text-white'
+                                : 'bg-blue-50 text-blue-600'
+                              : isRecruiter
+                                ? 'text-white/90 hover:bg-white/10 hover:text-white'
+                                : 'text-slate-700 hover:bg-blue-50 hover:text-blue-600'
+                          }
+                        `}
+                      >
+                        {item.label}
+                      </button>
+                    )
+                  })}
 
                 </div>
               </nav>

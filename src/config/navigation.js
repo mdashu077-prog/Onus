@@ -8,10 +8,6 @@ export const guestNavItems = [
     label: 'Latest Jobs',
   },
   {
-    to: '/fresher',
-    label: 'Fresher Jobs',
-  },
-  {
     to: '/internships',
     label: 'Internships',
   },

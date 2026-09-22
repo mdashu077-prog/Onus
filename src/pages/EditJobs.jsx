@@ -17,6 +17,7 @@ export default function EditJobs() {
     location: '',
     salary: '',
     jobType: 'Full time',
+    experienceLevel: 'GENERAL',
     description: '',
   })
 
@@ -61,6 +62,7 @@ export default function EditJobs() {
       location: job.location || '',
       salary: job.salary || '',
       jobType: job.jobType || 'Full time',
+      experienceLevel: job.experienceLevel || 'GENERAL',
       description: job.description || '',
     })
 
@@ -79,6 +81,7 @@ export default function EditJobs() {
       location: '',
       salary: '',
       jobType: 'Full time',
+      experienceLevel: 'GENERAL',
       description: '',
     })
   }
@@ -114,6 +117,7 @@ export default function EditJobs() {
         location: form.location,
         salary: form.salary,
         jobType: form.jobType,
+        experienceLevel: form.experienceLevel || 'GENERAL',
         description: form.description,
       }
 

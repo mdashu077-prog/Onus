@@ -16,6 +16,9 @@ export default function Register({ auth, onLogin }) {
 
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const referralCode = useMemo(() => {
+    return new URLSearchParams(location.search).get('ref') || ''
+  }, [location.search])
 
   useEffect(() => {
     if (auth) {
@@ -34,6 +37,7 @@ export default function Register({ auth, onLogin }) {
         email,
         password,
         role: selectedRole === 'recruiter' ? 'recruiter' : 'job-seeker',
+        referralCode: referralCode || undefined,
       })
 
       onLogin?.(user)

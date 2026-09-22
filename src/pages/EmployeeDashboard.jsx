@@ -21,10 +21,14 @@ import {
   UserRound,
   Users,
   X,
+  ImagePlus,
+  MapPin,
+  Share2,
 } from 'lucide-react'
 
 import {
   getMyApplications,
+  getMyProfile,
   protectedRequest,
 } from '../services/api'
 import { jobSeekerNavItems } from '../config/navigation'
@@ -229,8 +233,18 @@ export default function EmployeeDashboard({ auth }) {
   const [jobs, setJobs] =
     useState([])
 
+  const [profileStrength, setProfileStrength] = useState({
+    percentage: 0,
+    message: 'Complete your profile to improve your visibility.',
+  })
+
   const [search, setSearch] =
     useState('')
+
+  const circleRadius = 40
+  const circleCircumference = 2 * Math.PI * circleRadius
+  const profilePercentage = Number(profileStrength?.percentage || 0)
+  const profileDashOffset = circleCircumference - (profilePercentage / 100) * circleCircumference
 
   const [type, setType] =
     useState('ALL')
@@ -240,6 +254,85 @@ export default function EmployeeDashboard({ auth }) {
 
   const [loading, setLoading] =
     useState(true)
+
+  const [profile, setProfile] = useState(null)
+  const [profileSocial, setProfileSocial] = useState({
+    followersCount: 0,
+    followingCount: 0,
+    posts: [],
+    jobs: [],
+    followers: [],
+    following: [],
+  })
+  const [profileStories, setProfileStories] = useState([])
+  const [networkList, setNetworkList] = useState(null)
+  const [storyComposerOpen, setStoryComposerOpen] = useState(false)
+  const [storyText, setStoryText] = useState('')
+  const [storySaving, setStorySaving] = useState(false)
+  const [profileNotice, setProfileNotice] = useState('')
+
+  useEffect(() => {
+    async function loadProfileHome() {
+      try {
+        const data = await getMyProfile()
+        setProfile(data)
+        const [publicProfile, followers, following, storiesResponse] = await Promise.all([
+          protectedRequest(`/api/users/${data.id}`, { method: 'GET' }),
+          protectedRequest(`/api/users/${data.id}/followers`, { method: 'GET' }),
+          protectedRequest(`/api/users/${data.id}/following`, { method: 'GET' }),
+          fetch(`${BASE_URL}/api/stories/user/${data.id}`),
+        ])
+        setProfileSocial({
+          followersCount: publicProfile?.followersCount ?? 0,
+          followingCount: publicProfile?.followingCount ?? 0,
+          posts: Array.isArray(publicProfile?.posts) ? publicProfile.posts : [],
+          jobs: Array.isArray(publicProfile?.jobs) ? publicProfile.jobs : [],
+          followers: Array.isArray(followers) ? followers : [],
+          following: Array.isArray(following) ? following : [],
+        })
+        setProfileStories(storiesResponse.ok ? await storiesResponse.json() : [])
+      } catch (error) {
+        console.error('Profile home load failed:', error)
+      }
+    }
+
+    if (localStorage.getItem('onus_token')) {
+      loadProfileHome()
+    }
+  }, [])
+
+  async function createProfileStory(event) {
+    event.preventDefault()
+    if (!storyText.trim()) return
+    try {
+      setStorySaving(true)
+      const story = await protectedRequest('/api/stories', {
+        method: 'POST',
+        body: JSON.stringify({ content: storyText.trim() }),
+      })
+      setProfileStories((current) => [story, ...current])
+      setStoryText('')
+      setStoryComposerOpen(false)
+    } catch (error) {
+      setProfileNotice(error.message || 'Unable to create story.')
+    } finally {
+      setStorySaving(false)
+    }
+  }
+
+  async function shareProfileHome() {
+    const url = `${window.location.origin}/users/${profile?.id}`
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: profile?.name || 'ONUS Profile', url })
+      } else {
+        await navigator.clipboard.writeText(url)
+        setProfileNotice('Profile link copied.')
+      }
+    } catch (error) {
+      if (error?.name !== 'AbortError') setProfileNotice('Unable to share profile.')
+    }
+  }
 
   // ==========================================================
   // NOTIFICATIONS
@@ -275,11 +368,19 @@ export default function EmployeeDashboard({ auth }) {
         const [
           applicationsResult,
           messagesResult,
+          profileStrengthResult,
         ] = await Promise.allSettled([
           getMyApplications(),
 
           protectedRequest(
             '/api/messages/unread-count',
+            {
+              method: 'GET',
+            }
+          ),
+
+          protectedRequest(
+            '/api/profile/strength',
             {
               method: 'GET',
             }
@@ -314,6 +415,21 @@ export default function EmployeeDashboard({ auth }) {
           )
         } else {
           setUnreadMessages(0)
+        }
+
+        if (
+          profileStrengthResult.status ===
+          'fulfilled'
+        ) {
+          const data = parse(
+            profileStrengthResult.value,
+            {}
+          )
+
+          setProfileStrength({
+            percentage: Number(data?.percentage || 0),
+            message: data?.message || 'Complete your profile to improve your visibility.',
+          })
         }
       } catch (error) {
         console.error(
@@ -1144,6 +1260,59 @@ export default function EmployeeDashboard({ auth }) {
 
         <main className="relative mx-auto w-full max-w-[1500px] overflow-x-hidden px-4 pb-12 pt-5 sm:px-6 sm:pt-6 lg:px-8 lg:pt-8">
 
+          {profile && (
+            <section className="mb-6 overflow-hidden rounded-[24px] border border-slate-200 bg-white shadow-[0_16px_45px_rgba(15,23,42,0.06)]">
+              <div className="h-24 bg-gradient-to-r from-slate-950 via-blue-950 to-blue-700 sm:h-32" />
+              <div className="px-4 pb-5 sm:px-6">
+                <div className="-mt-9 flex flex-col gap-4 sm:-mt-11 sm:flex-row sm:items-end sm:justify-between">
+                  <div className="flex items-end gap-3">
+                    <div className="rounded-full bg-white p-1.5 shadow-md">
+                      {profile.profilePhotoUrl ? (
+                        <img src={profile.profilePhotoUrl} alt={profile.name || 'Profile'} className="h-16 w-16 rounded-full object-cover sm:h-20 sm:w-20" />
+                      ) : (
+                        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-blue-100 text-lg font-bold text-blue-700 sm:h-20 sm:w-20">{(profile.name || 'U').split(/\s+/).slice(0, 2).map((part) => part[0]).join('').toUpperCase()}</div>
+                      )}
+                    </div>
+                    <div className="pb-1">
+                      <h1 className="text-xl font-bold text-slate-900 sm:text-2xl">{profile.name || 'My Profile'}</h1>
+                      {(profile.headline || profile.designation) && <p className="text-sm text-slate-600">{profile.headline || profile.designation}</p>}
+                      {profile.location && <p className="mt-1 inline-flex items-center gap-1 text-xs text-slate-500"><MapPin className="h-3.5 w-3.5" />{profile.location}</p>}
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <Link to="/profile" className="rounded-lg bg-blue-600 px-3.5 py-2 text-xs font-semibold text-white hover:bg-blue-700">Edit Profile</Link>
+                    <button type="button" onClick={() => setStoryComposerOpen(true)} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"><ImagePlus className="h-3.5 w-3.5" /> Add Story</button>
+                    <button type="button" onClick={shareProfileHome} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"><Share2 className="h-3.5 w-3.5" /> Share</button>
+                  </div>
+                </div>
+
+                <div className="mt-4 flex flex-wrap gap-x-6 gap-y-2 border-y border-slate-100 py-3 text-sm">
+                  <button type="button" onClick={() => setNetworkList('followers')} className="text-left"><strong className="text-slate-900">{profileSocial.followersCount}</strong><span className="ml-1 text-slate-500">Followers</span></button>
+                  <button type="button" onClick={() => setNetworkList('following')} className="text-left"><strong className="text-slate-900">{profileSocial.followingCount}</strong><span className="ml-1 text-slate-500">Following</span></button>
+                  <span className="text-left"><strong className="text-slate-900">{profileSocial.posts.length}</strong><span className="ml-1 text-slate-500">Posts</span></span>
+                </div>
+
+                {profileNotice && <p className="mt-3 rounded-lg bg-blue-50 px-3 py-2 text-xs text-blue-700">{profileNotice}</p>}
+
+                <div className="mt-4 rounded-xl bg-slate-50 p-4">
+                  <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-400">About</p>
+                  {profile.bio && <p className="mt-2 line-clamp-2 text-sm leading-6 text-slate-700">{profile.bio}</p>}
+                  <div className="mt-3 grid gap-2 text-xs text-slate-600 sm:grid-cols-2">
+                    {profile.skills && <p><strong>Skills:</strong> {profile.skills}</p>}
+                    {profile.experience && <p><strong>Experience:</strong> {profile.experience}</p>}
+                    {profile.education && <p><strong>Education:</strong> {profile.education}</p>}
+                    {profile.location && <p><strong>Location:</strong> {profile.location}</p>}
+                  </div>
+                  {!profile.bio && !profile.skills && !profile.experience && !profile.education && !profile.location && <p className="mt-2 text-sm text-slate-500">Complete your profile to add professional details.</p>}
+                </div>
+              </div>
+            </section>
+          )}
+
+          {networkList && profile && <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/40 p-4" onClick={() => setNetworkList(null)}><div className="max-h-[80vh] w-full max-w-md overflow-auto rounded-2xl bg-white p-5 shadow-xl" onClick={(event) => event.stopPropagation()}><div className="flex items-center justify-between"><h2 className="text-lg font-bold text-slate-900">{networkList === 'followers' ? 'Followers' : 'Following'}</h2><button type="button" onClick={() => setNetworkList(null)} className="text-sm font-semibold text-slate-500">Close</button></div><div className="mt-4 space-y-2">{(networkList === 'followers' ? profileSocial.followers : profileSocial.following).length === 0 ? <p className="py-5 text-sm text-slate-500">No users to show.</p> : (networkList === 'followers' ? profileSocial.followers : profileSocial.following).map((user) => <Link key={user.id} to={`/users/${user.id}`} onClick={() => setNetworkList(null)} className="flex items-center gap-3 rounded-xl p-2 hover:bg-slate-50"><div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-100 text-sm font-bold text-blue-700">{(user.name || 'U').split(/\s+/).slice(0, 2).map((part) => part[0]).join('').toUpperCase()}</div><span><strong className="block text-sm text-slate-800">{user.name || 'Unnamed user'}</strong>{user.designation && <span className="block text-xs text-slate-500">{user.designation}</span>}</span></Link>)}</div></div></div>}
+
+          {storyComposerOpen && <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/40 p-4" onClick={() => setStoryComposerOpen(false)}><form onSubmit={createProfileStory} onClick={(event) => event.stopPropagation()} className="w-full max-w-md rounded-2xl bg-white p-5 shadow-xl"><h2 className="text-lg font-bold text-slate-900">Add Story</h2><p className="mt-1 text-sm text-slate-500">Stories expire after 24 hours.</p><textarea value={storyText} onChange={(event) => setStoryText(event.target.value)} rows={4} maxLength={2000} placeholder="Write a professional update..." className="mt-4 w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-blue-500" /><div className="mt-4 flex justify-end gap-2"><button type="button" onClick={() => setStoryComposerOpen(false)} className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600">Cancel</button><button type="submit" disabled={storySaving || !storyText.trim()} className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white disabled:bg-slate-300">{storySaving ? 'Publishing...' : 'Publish Story'}</button></div></form></div>}
+
           {/* ==================================================
               WELCOME + PIPELINE
           ================================================== */}
@@ -1465,19 +1634,19 @@ export default function EmployeeDashboard({ auth }) {
                     <circle
                       cx="50"
                       cy="50"
-                      r="40"
+                      r={circleRadius}
                       fill="none"
                       stroke="#2563eb"
                       strokeWidth="9"
                       strokeLinecap="round"
-                      strokeDasharray="251"
-                      strokeDashoffset="62.75"
+                      strokeDasharray={circleCircumference}
+                      strokeDashoffset={profileDashOffset}
                     />
 
                   </svg>
 
                   <span className="absolute inset-0 flex items-center justify-center text-sm font-bold text-slate-900">
-                    75%
+                    {profilePercentage}%
                   </span>
 
                 </div>
@@ -1485,14 +1654,11 @@ export default function EmployeeDashboard({ auth }) {
                 <div>
 
                   <p className="font-bold text-emerald-600">
-                    Good!
+                    {profilePercentage <= 39 ? 'Profile needs work' : profilePercentage <= 69 ? 'Progressing' : profilePercentage <= 89 ? 'Good!' : profilePercentage <= 99 ? 'Almost there!' : 'Excellent!'}
                   </p>
 
                   <p className="mt-1 text-xs leading-5 text-slate-500">
-                    Complete your profile
-                    to improve your
-                    chances of getting
-                    noticed.
+                    {profileStrength.message}
                   </p>
 
                 </div>

@@ -25,7 +25,6 @@ export default function Footer({ auth }) {
             <p className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-400">For Job Seekers</p>
             <div className="mt-4 flex flex-col gap-2 text-sm text-slate-300">
               <Link to="/jobs" className="transition hover:text-white">Latest Jobs</Link>
-              <Link to="/fresher" className="transition hover:text-white">Fresher Jobs</Link>
               <Link to="/internships" className="transition hover:text-white">Internships</Link>
               <Link to="/applications" className="transition hover:text-white">Applications</Link>
             </div>
@@ -41,15 +40,15 @@ export default function Footer({ auth }) {
           </div>
         </div>
       ) : (
-        <div className="container-center grid gap-10 px-4 py-12 sm:px-6 md:grid-cols-[1.5fr_1fr_1.25fr_0.9fr] lg:gap-12 lg:py-14">
+        <div className="container-center grid gap-8 px-4 py-10 sm:px-6 md:grid-cols-[1.5fr_1fr_1.25fr_0.9fr] md:gap-10 lg:gap-12 lg:py-14">
           <div>
             <div className="text-2xl font-black tracking-[-0.05em] text-white">ONUS</div>
-            <p className="mt-4 max-w-xs text-sm leading-6 text-slate-400">Career Platform for job seekers and recruiters.</p>
-            <p className="mt-4 text-sm font-medium leading-7 text-slate-300">Find opportunities.<br />Build careers.<br />Hire talent.</p>
+            <p className="mt-3 max-w-xs text-sm leading-6 text-slate-400">Career Platform for job seekers and recruiters.</p>
+            <p className="mt-3 text-sm font-medium leading-6 text-slate-300">Find opportunities.<br />Build careers.<br />Hire talent.</p>
           </div>
           <div>
             <p className="text-xs font-bold uppercase tracking-[0.2em] text-blue-300">Explore</p>
-            <div className="mt-4 flex flex-col gap-3 text-sm text-slate-300">
+            <div className="mt-4 flex flex-col gap-2.5 text-sm text-slate-300">
               <Link to="/about" className="transition hover:text-white">About ONUS</Link>
               <Link to="/how-it-works" className="transition hover:text-white">How ONUS Works</Link>
               <Link to="/career-guidance" className="transition hover:text-white">Career Guidance</Link>
@@ -57,7 +56,7 @@ export default function Footer({ auth }) {
           </div>
           <div>
             <p className="text-xs font-bold uppercase tracking-[0.2em] text-blue-300">Help &amp; Career</p>
-            <div className="mt-4 grid grid-cols-2 gap-x-5 gap-y-3 text-sm text-slate-300 sm:grid-cols-1">
+            <div className="mt-4 grid grid-cols-2 gap-x-5 gap-y-2.5 text-sm text-slate-300 sm:grid-cols-1">
               <Link to="/help" className="transition hover:text-white">Help Center</Link>
               <Link to="/resume-tips" className="transition hover:text-white">Resume Tips</Link>
               <Link to="/interview-tips" className="transition hover:text-white">Interview Tips</Link>
@@ -67,11 +66,11 @@ export default function Footer({ auth }) {
           </div>
           <div>
             <p className="text-xs font-bold uppercase tracking-[0.2em] text-blue-300">Account</p>
-            <div className="mt-4 flex flex-col gap-3 text-sm text-slate-300">
+            <div className="mt-4 flex flex-col gap-2.5 text-sm text-slate-300">
               <Link to="/login" className="transition hover:text-white">Sign In</Link>
               <Link to="/register" className="transition hover:text-white">Create Account</Link>
             </div>
-            <p className="mt-8 text-xs leading-5 text-slate-500">Built &amp; Designed by Ashraf</p>
+            <p className="mt-6 text-xs leading-5 text-slate-500">Built &amp; Designed by Ashraf</p>
           </div>
         </div>
       )}

@@ -7,6 +7,8 @@ import {
   Routes,
   Route,
   Navigate,
+  useNavigate,
+  useParams,
 } from 'react-router-dom'
 
 // =====================================================
@@ -16,6 +18,7 @@ import {
 import Navbar from './components/Navbar'
 import Footer from './components/Footer'
 import ProtectedRoute from './components/ProtectedRoute'
+import ApplicationForm from './components/ApplicationForm'
 
 // =====================================================
 // PAGES
@@ -25,17 +28,18 @@ import Home from './pages/Home'
 import Jobs from './pages/Jobs'
 import EditJobs from './pages/EditJobs'
 
-import FresherJobs from './pages/FresherJobs'
 import Internships from './pages/Internships'
 import Companies from './pages/Companies'
 import Recruiters from './pages/Recruiters'
 
 import Login from './pages/Login'
+import AdminLogin from './pages/AdminLogin'
 import Register from './pages/Register'
 import ForgotPassword from './pages/ForgotPassword'
 
 import EmployeeDashboard from './pages/EmployeeDashboard'
 import EmployerDashboard from './pages/EmployerDashboard'
+import AdminDashboard from './pages/AdminDashboard'
 
 // =====================================================
 // RECRUITER APPLICANTS PAGE
@@ -72,9 +76,52 @@ import Messages from './pages/Messages'
 import ReferralEarn from './pages/ReferralEarn'
 import MyApplications from './pages/MyApplications'
 import SavedJobs from './pages/SavedJobs'
+import SavedPosts from './pages/SavedPosts'
+import PublicProfile from './pages/PublicProfile'
 import Resume from './pages/Resume'
 
 // =====================================================
+// =====================================================
+// JOB APPLICATION PAGE
+// =====================================================
+
+function JobApplicationPage() {
+  const { jobId } = useParams()
+  const navigate = useNavigate()
+
+  const handleSuccess = () => {
+    if (jobId) {
+      navigate(`/jobs/${jobId}`)
+    }
+  }
+
+  const handleCancel = () => {
+    if (jobId) {
+      navigate(`/jobs/${jobId}`)
+    }
+  }
+
+  return (
+    <section className="bg-bg min-h-screen py-16">
+      <div className="container-center max-w-5xl">
+        <button
+          type="button"
+          onClick={() => navigate(`/jobs/${jobId}`)}
+          className="mb-6 text-sm font-semibold text-primary hover:underline"
+        >
+          ← Back to job details
+        </button>
+
+        <ApplicationForm
+          jobId={jobId}
+          onSuccess={handleSuccess}
+          onCancel={handleCancel}
+        />
+      </div>
+    </section>
+  )
+}
+
 // APP
 // =====================================================
 
@@ -97,9 +144,10 @@ function App() {
     }
 
     try {
+      const parsed = JSON.parse(saved)
+      const token = window.localStorage.getItem('onus_token') || parsed?.token
 
-      return JSON.parse(saved)
-
+      return token ? { ...parsed, token } : null
     } catch (error) {
 
       console.error(
@@ -108,6 +156,7 @@ function App() {
       )
 
       window.localStorage.removeItem('onus-auth')
+      window.localStorage.removeItem('onus_token')
 
       return null
     }
@@ -124,15 +173,23 @@ function App() {
     }
 
     if (auth) {
+      const storedAuth = {
+        ...auth,
+        token: auth.token || window.localStorage.getItem('onus_token'),
+      }
 
       window.localStorage.setItem(
         'onus-auth',
-        JSON.stringify(auth)
+        JSON.stringify(storedAuth)
       )
 
+      if (storedAuth.token) {
+        window.localStorage.setItem('onus_token', storedAuth.token)
+      }
     } else {
 
       window.localStorage.removeItem('onus-auth')
+      window.localStorage.removeItem('onus_token')
     }
 
   }, [auth])
@@ -142,8 +199,12 @@ function App() {
   // =====================================================
 
   function handleLogin(user) {
+    const nextAuth = {
+      ...user,
+      token: user?.token || window.localStorage.getItem('onus_token'),
+    }
 
-    setAuth(user)
+    setAuth(nextAuth)
   }
 
   // =====================================================
@@ -166,6 +227,21 @@ function App() {
     }
   }
 
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return undefined
+    }
+
+    const handleAuthClear = () => {
+      setAuth(null)
+    }
+
+    window.addEventListener('onus:auth-clear', handleAuthClear)
+    return () => {
+      window.removeEventListener('onus:auth-clear', handleAuthClear)
+    }
+  }, [])
+
   // =====================================================
   // ROLE HELPER
   // =====================================================
@@ -173,9 +249,13 @@ function App() {
   const isRecruiter =
     auth?.role?.toLowerCase() === 'recruiter'
 
+  const isAdmin =
+    auth?.role?.toLowerCase() === 'admin'
+
   const isValidAuth =
     auth?.role?.toLowerCase() === 'job-seeker' ||
-    auth?.role?.toLowerCase() === 'recruiter'
+    auth?.role?.toLowerCase() === 'recruiter' ||
+    auth?.role?.toLowerCase() === 'admin'
 
   const effectiveAuth = isValidAuth ? auth : null
 
@@ -214,9 +294,11 @@ function App() {
               effectiveAuth ? (
                 <Navigate
                   to={
-                    isRecruiter
-                      ? '/employer'
-                      : '/employee'
+                    isAdmin
+                      ? '/admin'
+                      : isRecruiter
+                        ? '/employer'
+                        : '/employee'
                   }
                   replace
                 />
@@ -249,11 +331,18 @@ function App() {
           />
 
           <Route
-            path="/fresher"
+            path="/jobs/:jobId/apply"
             element={
               <ProtectedRoute auth={auth}>
-                <FresherJobs />
+                <JobApplicationPage />
               </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/fresher"
+            element={
+              <Navigate to="/jobs?category=FRESHER" replace />
             }
           />
 
@@ -294,6 +383,15 @@ function App() {
           />
 
           <Route
+            path="/recruiters/:recruiterId"
+            element={
+              <ProtectedRoute auth={auth}>
+                <RecruiterProfile />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
             path="/recruiters/:recruiterSlug"
             element={
               <ProtectedRoute auth={auth}>
@@ -317,6 +415,16 @@ function App() {
           />
 
           <Route
+            path="/admin/login"
+            element={
+              <AdminLogin
+                auth={effectiveAuth}
+                onLogin={handleLogin}
+              />
+            }
+          />
+
+          <Route
             path="/register"
             element={
               <Register
@@ -329,6 +437,25 @@ function App() {
           <Route
             path="/forgot-password"
             element={<ForgotPassword />}
+          />
+
+          {/* =================================================
+              ADMIN DASHBOARD
+          ================================================= */}
+
+          <Route
+            path="/admin"
+            element={
+              <ProtectedRoute
+                auth={auth}
+                requiredRole="admin"
+              >
+                <AdminDashboard
+                  auth={auth}
+                  onLogout={handleLogout}
+                />
+              </ProtectedRoute>
+            }
           />
 
           {/* =================================================
@@ -488,6 +615,24 @@ function App() {
             }
           />
 
+          <Route
+            path="/saved-posts"
+            element={
+              <ProtectedRoute auth={auth}>
+                <SavedPosts />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/users/:userId"
+            element={
+              <ProtectedRoute auth={auth}>
+                <PublicProfile />
+              </ProtectedRoute>
+            }
+          />
+
           {/* =================================================
               JOB SEEKER - RESUME
           ================================================= */}
@@ -525,7 +670,7 @@ function App() {
             path="/settings"
             element={
               <ProtectedRoute auth={auth}>
-                <Settings auth={auth} />
+                <Settings auth={auth} onLogout={handleLogout} />
               </ProtectedRoute>
             }
           />

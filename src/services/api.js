@@ -55,6 +55,53 @@ export function registerUser(payload) {
   )
 }
 
+export async function getMyProfile() {
+  return protectedRequest(
+    '/api/profile/me',
+    {
+      method: 'GET',
+    }
+  )
+}
+
+export async function updateMyProfile(payload) {
+  return protectedRequest(
+    '/api/profile/me',
+    {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    }
+  )
+}
+
+export async function changePassword(payload) {
+  return protectedRequest(
+    '/api/profile/change-password',
+    {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    }
+  )
+}
+
+export async function getMyReferralStats() {
+  return protectedRequest(
+    '/api/referrals/me',
+    {
+      method: 'GET',
+    }
+  )
+}
+
+export async function validateReferralCode(referralCode) {
+  return protectedRequest(
+    '/api/referrals/validate',
+    {
+      method: 'POST',
+      body: JSON.stringify({ referralCode }),
+    }
+  )
+}
 
 // =====================================================
 // LOGIN
@@ -67,6 +114,14 @@ export function loginUser(payload) {
   )
 }
 
+export async function deleteAdminUser(userId) {
+  return protectedRequest(
+    `/api/admin/users/${userId}`,
+    {
+      method: 'DELETE',
+    }
+  )
+}
 
 // =====================================================
 // PROTECTED REQUEST
@@ -86,14 +141,23 @@ export async function protectedRequest(
     ...(options.headers || {}),
   }
 
-
-  // ===================================================
-  // JWT TOKEN
-  // ===================================================
-
   if (token) {
     headers.Authorization =
       `Bearer ${token}`
+  }
+
+  const isJwtExpired = (jwt) => {
+    if (!jwt || typeof jwt !== 'string') return true
+
+    try {
+      const payload = jwt.split('.')[1]
+      if (!payload) return true
+
+      const decoded = JSON.parse(atob(payload.replace(/-/g, '+').replace(/_/g, '/')))
+      return Number(decoded.exp || 0) * 1000 <= Date.now()
+    } catch {
+      return true
+    }
   }
 
 
@@ -152,6 +216,11 @@ export async function protectedRequest(
   // ===================================================
 
   if (!response.ok) {
+    if ((response.status === 401 || response.status === 403) && token && isJwtExpired(token)) {
+      localStorage.removeItem('onus_token')
+      localStorage.removeItem('onus-auth')
+      window.dispatchEvent(new CustomEvent('onus:auth-clear'))
+    }
 
     let message =
       `Server error (${response.status})`
@@ -182,36 +251,39 @@ export async function protectedRequest(
 // GET ALL JOBS
 // =====================================================
 
-export async function getJobs() {
+export async function getJobs(params = {}) {
+  const query = new URLSearchParams()
 
-  const response =
-    await fetch(
-      `${BASE_URL}/api/jobs`
-    )
+  if (params.category) {
+    query.set('category', params.category)
+  }
 
-  const text =
-    await response.text()
+  if (params.type) {
+    query.set('type', params.type)
+  }
+
+  if (params.search) {
+    query.set('search', params.search)
+  }
+
+  const url = `${BASE_URL}/api/jobs${query.toString() ? `?${query.toString()}` : ''}`
+  const response = await fetch(url)
+
+  const text = await response.text()
 
   let data = []
-
 
   if (text) {
     try {
       data = JSON.parse(text)
     } catch {
-      throw new Error(
-        'Invalid server response'
-      )
+      throw new Error('Invalid server response')
     }
   }
 
-
   if (!response.ok) {
-    throw new Error(
-      'Failed to fetch jobs'
-    )
+    throw new Error('Failed to fetch jobs')
   }
-
 
   return data
 }
@@ -320,6 +392,38 @@ export async function deleteJob(
       method: 'DELETE',
     }
   )
+}
+
+export async function extendJob(jobId, expiresAt) {
+  if (!jobId) {
+    throw new Error('Job ID is missing')
+  }
+
+  return protectedRequest(`/api/jobs/${jobId}/extend`, {
+    method: 'POST',
+    body: JSON.stringify({ expiresAt }),
+  })
+}
+
+export async function closeJob(jobId) {
+  if (!jobId) {
+    throw new Error('Job ID is missing')
+  }
+
+  return protectedRequest(`/api/jobs/${jobId}/close`, {
+    method: 'POST',
+  })
+}
+
+export async function reopenJob(jobId, payload = {}) {
+  if (!jobId) {
+    throw new Error('Job ID is missing')
+  }
+
+  return protectedRequest(`/api/jobs/${jobId}/reopen`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  })
 }
 
 

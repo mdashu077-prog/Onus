@@ -8,9 +8,10 @@ export default function ProtectedRoute({
   const location = useLocation()
   const role = auth?.role?.toLowerCase()
   const isValidAuth =
-    role === 'job-seeker' || role === 'recruiter'
+    role === 'job-seeker' ||
+    role === 'recruiter' ||
+    role === 'admin'
 
-  // User logged in nahi hai
   if (!isValidAuth) {
     return (
       <Navigate
@@ -21,12 +22,10 @@ export default function ProtectedRoute({
     )
   }
 
-  // Required role check
   if (
     requiredRole &&
     role !== requiredRole
   ) {
-    // Recruiter ko recruiter dashboard
     if (role === 'recruiter') {
       return (
         <Navigate
@@ -36,7 +35,6 @@ export default function ProtectedRoute({
       )
     }
 
-    // Job seeker ko employee dashboard
     if (role === 'job-seeker') {
       return (
         <Navigate
@@ -46,7 +44,15 @@ export default function ProtectedRoute({
       )
     }
 
-    // Unknown role
+    if (role === 'admin') {
+      return (
+        <Navigate
+          to="/admin"
+          replace
+        />
+      )
+    }
+
     return (
       <Navigate
         to="/login"
@@ -55,6 +61,5 @@ export default function ProtectedRoute({
     )
   }
 
-  // Authentication + role dono correct
   return children
 }

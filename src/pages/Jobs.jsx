@@ -1,14 +1,20 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Search } from 'lucide-react'
+import { useSearchParams } from 'react-router-dom'
 import JobCard from '../components/JobCard'
 import { getJobs } from '../services/api'
+
+const categoryOptions = ['ALL', 'FULL TIME', 'PART TIME', 'REMOTE', 'FRESHER', 'INTERNSHIP']
 
 export default function Jobs() {
   const [jobs, setJobs] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [query, setQuery] = useState('')
-  const [typeFilter, setTypeFilter] = useState('ALL')
+  const [searchParams, setSearchParams] = useSearchParams()
+  const [typeFilter, setTypeFilter] = useState(
+    searchParams.get('category')?.toUpperCase() || 'ALL'
+  )
 
   useEffect(() => {
     async function loadJobs() {
@@ -16,7 +22,8 @@ export default function Jobs() {
         setLoading(true)
         setError('')
 
-        const data = await getJobs()
+        const category = searchParams.get('category')
+        const data = await getJobs({ category, search: query || undefined })
         setJobs(Array.isArray(data) ? data : [])
       } catch (err) {
         console.error('Failed to load jobs:', err)
@@ -27,15 +34,40 @@ export default function Jobs() {
     }
 
     loadJobs()
-  }, [])
+  }, [searchParams, query])
+
+  useEffect(() => {
+    const category = searchParams.get('category')?.toUpperCase() || 'ALL'
+    setTypeFilter(category)
+  }, [searchParams])
+
+  const handleFilterChange = (nextFilter) => {
+    const nextCategory = nextFilter === 'ALL' ? null : nextFilter
+    const nextParams = new URLSearchParams(searchParams)
+
+    if (nextCategory) {
+      nextParams.set('category', nextCategory)
+    } else {
+      nextParams.delete('category')
+    }
+
+    setSearchParams(nextParams, { replace: true })
+    setTypeFilter(nextFilter)
+  }
 
   const filteredJobs = useMemo(() => {
     const keyword = query.trim().toLowerCase()
 
     return jobs.filter((job) => {
       const jobType = String(job?.jobType || job?.type || '').toUpperCase()
+      const experienceLevel = String(job?.experienceLevel || 'GENERAL').toUpperCase()
       const matchesType =
-        typeFilter === 'ALL' || jobType === typeFilter || jobType.includes(typeFilter)
+        typeFilter === 'ALL' ||
+        (typeFilter === 'FRESHER' && experienceLevel === 'FRESHER') ||
+        (typeFilter === 'INTERNSHIP' && (jobType.includes('INTERNSHIP') || experienceLevel === 'INTERNSHIP')) ||
+        (typeFilter === 'FULL TIME' && jobType.includes('FULL')) ||
+        (typeFilter === 'PART TIME' && jobType.includes('PART')) ||
+        (typeFilter === 'REMOTE' && (jobType.includes('REMOTE') || (job?.location || '').toUpperCase().includes('REMOTE')))
 
       const matchesText =
         !keyword ||
@@ -65,18 +97,18 @@ export default function Jobs() {
             </div>
 
             <div className="flex flex-wrap gap-2">
-              {['ALL', 'FULL TIME', 'PART TIME', 'REMOTE', 'INTERNSHIP'].map((option) => (
+              {categoryOptions.map((option) => (
                 <button
                   key={option}
                   type="button"
-                  onClick={() => setTypeFilter(option)}
+                  onClick={() => handleFilterChange(option)}
                   className={`rounded-full border px-4 py-2 text-sm font-medium transition ${
                     typeFilter === option
                       ? 'border-primary bg-primary text-white shadow-[0_10px_20px_rgba(37,99,235,0.18)]'
                       : 'border-slate-200 bg-white text-slate-700 hover:border-primary hover:text-primary'
                   }`}
                 >
-                  {option === 'ALL' ? 'All' : option}
+                  {option === 'ALL' ? 'All Jobs' : option}
                 </button>
               ))}
             </div>

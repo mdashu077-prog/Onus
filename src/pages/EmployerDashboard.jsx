@@ -248,6 +248,7 @@ export default function EmployerDashboard({
     location: '',
     salary: '',
     jobType: 'Full time',
+    experienceLevel: 'GENERAL',
     stipend: '',
     internshipType: 'Full-time Internship',
     duration: '',
@@ -304,6 +305,7 @@ export default function EmployerDashboard({
         jobType: isInternship
           ? postForm.internshipType
           : postForm.jobType,
+        experienceLevel: isInternship ? 'INTERNSHIP' : (postForm.experienceLevel || 'GENERAL'),
         description: postForm.description.trim(),
         type: isInternship ? 'INTERNSHIP' : 'JOB',
       }
@@ -325,6 +327,7 @@ export default function EmployerDashboard({
         location: '',
         salary: '',
         jobType: 'Full time',
+        experienceLevel: 'GENERAL',
         stipend: '',
         internshipType: 'Full-time Internship',
         duration: '',
@@ -644,6 +647,23 @@ export default function EmployerDashboard({
                       <option value="Part time">Part time</option>
                       <option value="Contract">Contract</option>
                       <option value="Remote">Remote</option>
+                    </select>
+                  </div>
+
+                  <div className="md:col-span-2">
+                    <label className="mb-2 block text-sm font-semibold text-slate-700">
+                      Job Category
+                    </label>
+                    <select
+                      value={postForm.experienceLevel}
+                      onChange={(event) =>
+                        setPostForm((prev) => ({ ...prev, experienceLevel: event.target.value }))
+                      }
+                      className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-blue-500"
+                    >
+                      <option value="GENERAL">General Job</option>
+                      <option value="FRESHER">Fresher</option>
+                      <option value="INTERNSHIP">Internship</option>
                     </select>
                   </div>
                 </>

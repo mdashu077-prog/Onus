@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 
-import ApplicationForm from '../components/ApplicationForm'
 import { getMyApplications } from '../services/api'
 
 const BASE_URL =
@@ -19,9 +18,6 @@ export default function JobDetails() {
   const [checkingApplication, setCheckingApplication] =
     useState(false)
 
-  const [showApplicationForm, setShowApplicationForm] =
-    useState(false)
-
   const [alreadyApplied, setAlreadyApplied] =
     useState(false)
 
@@ -30,6 +26,17 @@ export default function JobDetails() {
 
   const [isSaved, setIsSaved] =
     useState(false)
+
+  const effectiveStatus = (() => {
+    if (job?.status === 'CLOSED') return 'CLOSED'
+    if (job?.status === 'EXPIRED') return 'EXPIRED'
+    if (job?.permanent === true || !job?.expiresAt) return 'ACTIVE'
+    if (new Date(job.expiresAt).getTime() < Date.now()) return 'EXPIRED'
+    return 'ACTIVE'
+  })()
+
+  const isJobActive = effectiveStatus === 'ACTIVE'
+  const isPermanent = job?.permanent === true || (!job?.expiresAt && job?.status !== 'EXPIRED' && job?.status !== 'CLOSED')
 
   // =====================================================
   // LOAD JOB DETAILS
@@ -191,28 +198,7 @@ export default function JobDetails() {
     if (alreadyApplied) return
 
     setSuccessMessage('')
-    setShowApplicationForm(true)
-  }
-
-  // =====================================================
-  // APPLICATION SUCCESS
-  // =====================================================
-
-  function handleApplicationSuccess() {
-    setShowApplicationForm(false)
-    setAlreadyApplied(true)
-
-    setSuccessMessage(
-      'Application submitted successfully! A confirmation email has been sent to your registered email address.'
-    )
-  }
-
-  // =====================================================
-  // APPLICATION CANCEL
-  // =====================================================
-
-  function handleApplicationCancel() {
-    setShowApplicationForm(false)
+    navigate(`/jobs/${jobId}/apply`)
   }
 
   // =====================================================
@@ -387,6 +373,57 @@ export default function JobDetails() {
               {job.company}
             </p>
 
+            <div className="mt-4 flex flex-wrap gap-2 text-xs font-medium uppercase tracking-[0.2em]">
+              <span className={`rounded-full px-3 py-1.5 ${isJobActive ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
+                {effectiveStatus === 'CLOSED' ? 'Closed' : effectiveStatus === 'EXPIRED' ? 'Vacancy Expired' : isPermanent ? 'Permanent vacancy' : 'Active'}
+              </span>
+              {!job?.permanent && job?.expiresAt && (
+                <span className="rounded-full bg-slate-100 px-3 py-1.5 text-slate-600">
+                  Valid until {new Date(job.expiresAt).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}
+                </span>
+              )}
+            </div>
+
+            <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <p className="text-xs uppercase tracking-[0.2em] text-slate-500">
+                Posted by
+              </p>
+
+              {job?.recruiter?.id ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => navigate(`/recruiters/${job.recruiter.id}`)}
+                    className="mt-2 text-left text-lg font-semibold text-primary hover:underline"
+                  >
+                    {job.recruiter.name || job.recruiterEmail || 'Recruiter'}
+                  </button>
+
+                  <p className="mt-1 text-sm text-slate-600">
+                    {job.recruiter.company || job.company || 'Company information unavailable'}
+                  </p>
+
+                  <button
+                    type="button"
+                    onClick={() => navigate(`/recruiters/${job.recruiter.id}`)}
+                    className="mt-3 inline-flex items-center rounded-full border border-primary bg-primary/5 px-3 py-1.5 text-xs font-semibold text-primary transition hover:bg-primary/10"
+                  >
+                    View Recruiter Profile →
+                  </button>
+                </>
+              ) : (
+                <>
+                  <p className="mt-2 text-lg font-semibold text-slate-700">
+                    {job.company || 'Company information unavailable'}
+                  </p>
+
+                  <p className="mt-1 text-sm text-slate-500">
+                    Recruiter profile is no longer available.
+                  </p>
+                </>
+              )}
+            </div>
+
             <p className="mt-5 whitespace-pre-line text-slate-700">
               {job.description ||
                 'No description available.'}
@@ -429,37 +466,44 @@ export default function JobDetails() {
 
             </div>
 
-            <div className="mt-8 flex flex-wrap gap-3">
+            <div className="mt-8 flex flex-wrap items-center gap-3">
 
-              <button
-                type="button"
-                onClick={handleApplyClick}
-                disabled={
-                  alreadyApplied ||
-                  checkingApplication
-                }
-                className={`rounded-full px-6 py-3 text-sm font-semibold text-white transition ${
-                  alreadyApplied
-                    ? 'cursor-not-allowed bg-green-600'
+              {!isJobActive ? (
+                <button
+                  type="button"
+                  disabled
+                  className="inline-flex cursor-not-allowed items-center justify-center rounded-full bg-slate-200 px-6 py-3 text-sm font-semibold text-slate-500 shadow-sm"
+                >
+                  {effectiveStatus === 'EXPIRED' ? 'Vacancy Expired' : 'Apply unavailable'}
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleApplyClick}
+                  disabled={alreadyApplied || checkingApplication}
+                  className={`inline-flex cursor-pointer items-center justify-center rounded-full bg-blue-600 px-6 py-3 text-sm font-semibold text-white shadow-md transition-all duration-200 ease-out hover:bg-blue-700 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-300 ${
+                    alreadyApplied
+                      ? 'cursor-not-allowed bg-green-600 shadow-sm'
+                      : checkingApplication
+                        ? 'cursor-wait bg-slate-400 shadow-sm'
+                        : ''
+                  }`}
+                >
+                  {alreadyApplied
+                    ? 'Already Applied'
                     : checkingApplication
-                      ? 'cursor-wait bg-slate-400'
-                      : 'bg-primary hover:bg-blue-600'
-                }`}
-              >
-                {alreadyApplied
-                  ? 'Already Applied'
-                  : checkingApplication
-                    ? 'Checking...'
-                    : 'Apply Now'}
-              </button>
+                      ? 'Checking...'
+                      : 'Apply Now'}
+                </button>
+              )}
 
               <button
                 type="button"
                 onClick={handleSave}
-                className={`rounded-full px-6 py-3 text-sm font-semibold transition ${
+                className={`inline-flex items-center justify-center rounded-full px-6 py-3 text-sm font-semibold opacity-100 visible transition-all duration-200 ease-out ${
                   isSaved
-                    ? 'border border-green-600 bg-green-50 text-green-700'
-                    : 'border border-primary bg-white text-primary hover:bg-primary/10'
+                    ? 'border border-green-600 bg-green-50 text-green-700 shadow-sm'
+                    : 'border border-primary bg-white text-primary shadow-sm hover:bg-primary/10'
                 }`}
               >
                 {isSaved
@@ -505,6 +549,13 @@ export default function JobDetails() {
 
               <p>
                 <span className="font-semibold text-secondary">
+                  Recruiter:
+                </span>{' '}
+                {job.recruiter?.name || 'Profile unavailable'}
+              </p>
+
+              <p>
+                <span className="font-semibold text-secondary">
                   Location:
                 </span>{' '}
                 {job.location ||
@@ -527,29 +578,25 @@ export default function JobDetails() {
                   'Not specified'}
               </p>
 
+              <p>
+                <span className="font-semibold text-secondary">
+                  Status:
+                </span>{' '}
+                {effectiveStatus === 'CLOSED' ? 'Closed' : effectiveStatus === 'EXPIRED' ? 'Vacancy Expired' : isPermanent ? 'Permanent vacancy' : 'Active'}
+              </p>
+
+              <p>
+                <span className="font-semibold text-secondary">
+                  Validity:
+                </span>{' '}
+                {job?.permanent || !job?.expiresAt ? 'Permanent vacancy' : new Date(job.expiresAt).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}
+              </p>
+
             </div>
 
           </aside>
 
         </div>
-
-        {/* APPLICATION FORM */}
-
-        {showApplicationForm && (
-          <div className="mt-8">
-
-            <ApplicationForm
-              jobId={jobId}
-              onSuccess={
-                handleApplicationSuccess
-              }
-              onCancel={
-                handleApplicationCancel
-              }
-            />
-
-          </div>
-        )}
 
       </div>
 

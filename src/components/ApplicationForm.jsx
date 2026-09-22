@@ -1,6 +1,9 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { applyForJob } from '../services/api'
+import {
+  applyForJob,
+  checkApplicationStatus,
+} from '../services/api'
 
 export default function ApplicationForm({
   jobId,
@@ -30,11 +33,30 @@ export default function ApplicationForm({
   const [submitted, setSubmitted] =
     useState(false)
 
+  const [alreadyApplied, setAlreadyApplied] =
+    useState(false)
+
   const [error, setError] =
     useState('')
 
   const [success, setSuccess] =
     useState('')
+
+  useEffect(() => {
+    async function verifyAlreadyApplied() {
+      if (!jobId) return
+
+      try {
+        const status = await checkApplicationStatus(jobId)
+        setAlreadyApplied(Boolean(status?.applied))
+      } catch (err) {
+        console.error('Failed to check application state:', err)
+        setAlreadyApplied(false)
+      }
+    }
+
+    verifyAlreadyApplied()
+  }, [jobId])
 
   // =====================================================
   // HANDLE INPUT CHANGE
@@ -113,6 +135,13 @@ export default function ApplicationForm({
 
   async function handleSubmit(e) {
     e.preventDefault()
+
+    if (submitting || alreadyApplied) {
+      if (alreadyApplied) {
+        setError('You have already applied for this job.')
+      }
+      return
+    }
 
     // Clear old messages
     setError('')
@@ -560,16 +589,16 @@ export default function ApplicationForm({
 
           <button
             type="submit"
-            disabled={submitting}
-            className={`rounded-full px-6 py-3 text-sm font-semibold text-white transition ${
-              submitting
-                ? 'cursor-not-allowed bg-blue-400'
-                : 'bg-primary hover:bg-blue-600'
+            disabled={submitting || alreadyApplied}
+            className={`inline-flex items-center justify-center rounded-full bg-blue-600 px-6 py-3 text-sm font-semibold text-white shadow-sm transition-colors duration-200 ease-out hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-300 disabled:cursor-not-allowed disabled:bg-slate-400 disabled:text-slate-200 ${
+              submitting ? 'cursor-wait' : ''
             }`}
           >
             {submitting
-              ? 'Submitting Application...'
-              : 'Submit Application'}
+              ? 'Submitting...'
+              : alreadyApplied
+                ? 'Already Applied'
+                : 'Submit Application'}
           </button>
 
           {/* CANCEL */}
@@ -578,7 +607,7 @@ export default function ApplicationForm({
             type="button"
             onClick={onCancel}
             disabled={submitting}
-            className="rounded-full border border-slate-300 px-6 py-3 text-sm font-semibold text-slate-700 transition hover:border-primary hover:text-primary disabled:opacity-50"
+            className="inline-flex items-center justify-center rounded-full border border-gray-300 bg-white px-6 py-3 text-sm font-semibold text-slate-700 shadow-sm transition-colors duration-200 hover:border-gray-400 hover:bg-gray-100 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-50"
           >
             Cancel
           </button>

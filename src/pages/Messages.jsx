@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
   MessageCircle,
   Mail,
@@ -92,11 +93,18 @@ function getInterviewType(message) {
 
 function Messages({ auth }) {
 
+  const location = useLocation();
+  const navigate = useNavigate();
+
   // =====================================================
   // STATE
   // =====================================================
 
   const [messages, setMessages] = useState([]);
+  const [conversations, setConversations] = useState([]);
+  const [selectedConversation, setSelectedConversation] = useState(null);
+  const [thread, setThread] = useState([]);
+  const [threadLoading, setThreadLoading] = useState(false);
 
   const [selectedMessage, setSelectedMessage] =
     useState(null);
@@ -109,6 +117,21 @@ function Messages({ auth }) {
 
   const [markingRead, setMarkingRead] =
     useState(false);
+  const [replyText, setReplyText] =
+    useState("");
+  const [replySubmitting, setReplySubmitting] =
+    useState(false);
+  const [composeText, setComposeText] = useState("");
+  const [composeSubject, setComposeSubject] = useState("Professional introduction");
+  const [composeSubmitting, setComposeSubmitting] = useState(false);
+  const [composeError, setComposeError] = useState("");
+  const [editingMessageId, setEditingMessageId] = useState(null);
+  const [editingText, setEditingText] = useState("");
+  const [headerMenuOpen, setHeaderMenuOpen] = useState(false);
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedMessageIds, setSelectedMessageIds] = useState([]);
+  const [contextMenu, setContextMenu] = useState(null);
+  const recipient = location.state?.recipient;
 
 
   // =====================================================
@@ -151,6 +174,10 @@ function Messages({ auth }) {
         setMessages([]);
       }
 
+      const conversationResponse = await protectedRequest("/api/messages/conversations", { method: "GET" });
+      const conversationData = await parseResponse(conversationResponse);
+      setConversations(Array.isArray(conversationData) ? conversationData : []);
+
     } catch (err) {
 
       console.error(
@@ -166,6 +193,97 @@ function Messages({ auth }) {
     } finally {
 
       setLoading(false);
+    }
+  }
+
+  async function openConversation(conversation) {
+    if (!conversation?.conversationId) return;
+    try {
+      setThreadLoading(true);
+      const data = await protectedRequest(`/api/messages/conversations/${encodeURIComponent(conversation.conversationId)}`, { method: "GET" });
+      setSelectedConversation(conversation);
+      setThread(Array.isArray(data) ? data : []);
+      const unreadMessages = (Array.isArray(data) ? data : []).filter((message) =>
+        !message.read && message.recipientEmail?.toLowerCase() === auth?.email?.toLowerCase()
+      );
+      await Promise.all(unreadMessages.map((message) => protectedRequest(`/api/messages/${message.id}/read`, { method: "PUT" }).catch(() => null)));
+      setConversations((items) => items.map((item) => item.conversationId === conversation.conversationId ? { ...item, unreadCount: 0 } : item));
+      window.dispatchEvent(new CustomEvent('onus:messages-updated'));
+    } catch (err) {
+      setError(err?.message || "Unable to load conversation.");
+    } finally {
+      setThreadLoading(false);
+    }
+  }
+
+  async function sendThreadReply() {
+    if (!selectedConversation?.conversationId || !replyText.trim()) return;
+    try {
+      setReplySubmitting(true);
+      const reply = await protectedRequest(`/api/messages/conversations/${encodeURIComponent(selectedConversation.conversationId)}/reply`, {
+        method: "POST",
+        body: JSON.stringify({ message: replyText.trim() }),
+      });
+      setThread((items) => [...items, reply]);
+      setReplyText("");
+      await loadMessages();
+    } catch (err) {
+      setError(err?.message || "Unable to send reply.");
+    } finally {
+      setReplySubmitting(false);
+    }
+  }
+
+  async function handleEditMessage(messageId) {
+    if (!editingText.trim()) return;
+
+    try {
+      const updated = await protectedRequest(`/api/messages/${messageId}`, {
+        method: "PUT",
+        body: JSON.stringify({ message: editingText.trim() }),
+      });
+
+      setThread((items) => items.map((item) => item.id === messageId ? { ...item, ...updated, message: updated.message || item.message, editedAt: updated.editedAt || item.editedAt } : item));
+      setMessages((items) => items.map((item) => item.id === messageId ? { ...item, ...updated, message: updated.message || item.message, editedAt: updated.editedAt || item.editedAt } : item));
+      setEditingMessageId(null);
+      setEditingText("");
+    } catch (err) {
+      setError(err?.message || "Unable to edit message.");
+    }
+  }
+
+  async function handleDeleteMessage(messageId) {
+    if (!window.confirm("Delete this message?")) {
+      return;
+    }
+
+    try {
+      const updated = await protectedRequest(`/api/messages/${messageId}`, {
+        method: "DELETE",
+      });
+
+      setThread((items) => items.map((item) => item.id === messageId ? { ...item, ...updated, deleted: true, deletedAt: updated.deletedAt || new Date().toISOString() } : item));
+      setMessages((items) => items.map((item) => item.id === messageId ? { ...item, ...updated, deleted: true, deletedAt: updated.deletedAt || new Date().toISOString() } : item));
+      setConversations((items) => items.map((item) => item.conversationId === selectedConversation?.conversationId ? { ...item, latestMessage: "This message was deleted" } : item));
+      setContextMenu(null);
+      window.dispatchEvent(new CustomEvent('onus:messages-updated'));
+    } catch (err) {
+      setError(err?.message || "Unable to delete message.");
+    }
+  }
+
+  async function handleRestoreMessage(messageId) {
+    try {
+      const restored = await protectedRequest(`/api/messages/${messageId}/restore`, {
+        method: "PUT",
+      });
+
+      setThread((items) => items.map((item) => item.id === messageId ? { ...item, ...restored, deleted: false, deletedAt: null } : item));
+      setMessages((items) => items.map((item) => item.id === messageId ? { ...item, ...restored, deleted: false, deletedAt: null } : item));
+      setContextMenu(null);
+      window.dispatchEvent(new CustomEvent('onus:messages-updated'));
+    } catch (err) {
+      setError(err?.message || "Unable to restore message.");
     }
   }
 
@@ -273,6 +391,195 @@ function Messages({ auth }) {
   function closeMessage() {
 
     setSelectedMessage(null);
+    setReplyText("");
+  }
+
+  useEffect(() => {
+    const handleOutsideClick = (event) => {
+      const menuFound = event.target instanceof Element && event.target.closest('[data-message-menu]');
+      if (!menuFound) {
+        setContextMenu(null);
+      }
+    };
+
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => document.removeEventListener('mousedown', handleOutsideClick);
+  }, []);
+
+  function toggleSelection(messageId) {
+    setSelectedMessageIds((previous) =>
+      previous.includes(messageId)
+        ? previous.filter((id) => id !== messageId)
+        : [...previous, messageId]
+    );
+  }
+
+  function startSelectionMode() {
+    setSelectionMode(true);
+    setHeaderMenuOpen(false);
+  }
+
+  function cancelSelection() {
+    setSelectionMode(false);
+    setSelectedMessageIds([]);
+  }
+
+  async function handleMarkConversationRead() {
+    if (!selectedConversation?.conversationId || !thread.length) return;
+
+    const unreadIds = thread
+      .filter((item) => !item.read && item.recipientEmail?.toLowerCase() === auth?.email?.toLowerCase())
+      .map((item) => item.id)
+      .filter(Boolean);
+
+    if (!unreadIds.length) return;
+
+    await Promise.all(
+      unreadIds.map((messageId) => protectedRequest(`/api/messages/${messageId}/read`, { method: 'PUT' }).catch(() => null))
+    );
+
+    setThread((items) => items.map((item) => (unreadIds.includes(item.id) ? { ...item, read: true } : item)));
+    setConversations((items) => items.map((item) => item.conversationId === selectedConversation.conversationId ? { ...item, unreadCount: 0 } : item));
+    window.dispatchEvent(new CustomEvent('onus:messages-updated'));
+    setHeaderMenuOpen(false);
+  }
+
+  async function handleBulkDelete() {
+    if (!selectedMessageIds.length) return;
+
+    const selected = selectedMessageIds.filter((id) => thread.some((item) => item.id === id));
+    if (!selected.length) return;
+
+    if (!window.confirm(`Delete ${selected.length} selected message(s)?`)) {
+      return;
+    }
+
+    await Promise.all(
+      selected.map((messageId) => protectedRequest(`/api/messages/${messageId}`, { method: 'DELETE' }).catch(() => null))
+    );
+
+    const nextThread = thread.filter((item) => !selected.includes(item.id));
+    setThread(nextThread);
+    setSelectedMessageIds([]);
+    setSelectionMode(false);
+    setHeaderMenuOpen(false);
+    window.dispatchEvent(new CustomEvent('onus:messages-updated'));
+    await loadMessages();
+  }
+
+  async function handleBulkRestore() {
+    if (!selectedMessageIds.length) return;
+
+    const selected = selectedMessageIds.filter((id) => thread.some((item) => item.id === id && Boolean(item.deleted)));
+    if (!selected.length) return;
+
+    await Promise.all(
+      selected.map((messageId) => protectedRequest(`/api/messages/${messageId}/restore`, { method: 'PUT' }).catch(() => null))
+    );
+
+    setThread((items) => items.map((item) => selected.includes(item.id) ? { ...item, deleted: false, deletedAt: null } : item));
+    setSelectedMessageIds([]);
+    setSelectionMode(false);
+    setHeaderMenuOpen(false);
+    window.dispatchEvent(new CustomEvent('onus:messages-updated'));
+  }
+
+  function handleMessageContextMenu(event, message) {
+    event.preventDefault();
+    event.stopPropagation();
+
+    if (!message) return;
+
+    const isOwnMessage = message.senderEmail?.toLowerCase() === auth?.email?.toLowerCase();
+    if (!selectionMode && !isOwnMessage && !message.deleted) {
+      return;
+    }
+
+    setContextMenu({
+      x: event.clientX,
+      y: event.clientY,
+      messageId: message.id,
+      isOwnMessage,
+      deleted: Boolean(message.deleted),
+    });
+  }
+
+  function handleLongPress(message) {
+    if (!message) return;
+    const isOwnMessage = message.senderEmail?.toLowerCase() === auth?.email?.toLowerCase();
+    if (!selectionMode && !isOwnMessage && !message.deleted) {
+      return;
+    }
+
+    setContextMenu({
+      x: 24,
+      y: 120,
+      messageId: message.id,
+      isOwnMessage,
+      deleted: Boolean(message.deleted),
+    });
+  }
+
+  async function handleReplySubmit() {
+    if (!selectedMessage || !replyText.trim()) {
+      return;
+    }
+
+    try {
+      setReplySubmitting(true);
+      const response = await protectedRequest(
+        `/api/messages/${selectedMessage.id}/reply`,
+        {
+          method: "POST",
+          body: JSON.stringify({ message: replyText.trim() }),
+        }
+      );
+
+      setReplyText("");
+      setSelectedMessage((previous) => ({
+        ...previous,
+        replyAllowed: false,
+      }));
+
+      if (response && typeof response === "object") {
+        setMessages((previousMessages) => [
+          response,
+          ...previousMessages,
+        ]);
+      }
+    } catch (err) {
+      console.error("Failed to send reply:", err);
+      setError(err?.message || "Unable to send reply.");
+    } finally {
+      setReplySubmitting(false);
+    }
+  }
+
+  async function handleComposeSubmit() {
+    if (!recipient?.id || !composeText.trim()) {
+      return;
+    }
+
+    try {
+      setComposeSubmitting(true);
+      setComposeError("");
+      await protectedRequest("/api/messages/direct", {
+        method: "POST",
+        body: JSON.stringify({
+          recruiterId: recipient.id,
+          subject: composeSubject.trim() || "Message from ONUS",
+          message: composeText.trim(),
+        }),
+      });
+      setComposeText("");
+      navigate('/messages', { replace: true, state: null });
+      await loadMessages();
+      window.dispatchEvent(new CustomEvent('onus:messages-updated'));
+    } catch (err) {
+      setComposeError(err?.message || "Unable to send message.");
+    } finally {
+      setComposeSubmitting(false);
+    }
   }
 
 
@@ -358,6 +665,157 @@ function Messages({ auth }) {
         </div>
 
       </div>
+    );
+  }
+
+  if (recipient && !selectedMessage) {
+    return (
+      <div className="min-h-screen bg-gray-50 px-4 py-8">
+        <div className="mx-auto max-w-3xl">
+          <button type="button" onClick={() => navigate('/messages', { replace: true, state: null })} className="mb-5 text-sm font-medium text-gray-600 hover:text-blue-600">← Back to Messages</button>
+          <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+            <div className="flex items-center gap-3 border-b border-gray-100 pb-5">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-100 text-lg font-bold text-blue-700">{(recipient.name || "R").split(" ").map((part) => part[0]).join("").slice(0, 2).toUpperCase()}</div>
+              <div><h1 className="text-xl font-semibold text-gray-900">Message {recipient.name || "recruiter"}</h1><p className="text-sm text-gray-500">Send a professional message through ONUS.</p></div>
+            </div>
+            <input value={composeSubject} onChange={(event) => setComposeSubject(event.target.value)} placeholder="Subject" className="mt-5 w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-blue-500" />
+            <textarea value={composeText} onChange={(event) => setComposeText(event.target.value)} placeholder="Write your message..." rows={7} className="mt-3 w-full rounded-xl border border-slate-200 px-4 py-3 text-sm leading-6 outline-none focus:border-blue-500" />
+            {composeError && <p className="mt-3 text-sm text-red-600">{composeError}</p>}
+            <div className="mt-4 flex justify-end"><button type="button" onClick={handleComposeSubmit} disabled={composeSubmitting || !composeText.trim()} className="rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-400">{composeSubmitting ? "Sending..." : "Send Message"}</button></div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (selectedConversation && !selectedMessage) {
+    const selectedThreadItems = thread.filter((item) => selectedMessageIds.includes(item.id));
+    const unreadInThread = thread.filter((item) => !item.read && item.recipientEmail?.toLowerCase() === auth?.email?.toLowerCase()).length;
+
+    return (
+      <div className="min-h-screen bg-gray-50 px-4 py-8">
+        <div className="mx-auto max-w-6xl">
+          <button type="button" onClick={() => setSelectedConversation(null)} className="mb-5 inline-flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-blue-600"><ArrowLeft className="h-4 w-4" /> Back to conversations</button>
+          <div className="grid min-h-[620px] overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm lg:grid-cols-[280px_minmax(0,1fr)]">
+            <aside className="hidden border-r border-gray-100 bg-gray-50 p-4 lg:block"><h2 className="text-lg font-bold text-gray-900">Messages</h2><div className="mt-4 space-y-2">{conversations.map((conversation) => <button key={conversation.conversationId} type="button" onClick={() => openConversation(conversation)} className={`w-full rounded-xl p-3 text-left ${conversation.conversationId === selectedConversation.conversationId ? 'bg-blue-100' : 'hover:bg-white'}`}><p className="truncate text-sm font-semibold text-gray-800">{conversation.otherParticipant}</p><p className="mt-1 truncate text-xs text-gray-500">{conversation.latestMessage}</p></button>)}</div></aside>
+            <section className="flex min-w-0 flex-col">
+              <header className="flex items-center justify-between gap-3 border-b border-gray-100 bg-white p-4 shadow-sm">
+                <div className="min-w-0">
+                  <p className="truncate text-lg font-bold text-gray-900">{selectedConversation.otherParticipant}</p>
+                  <p className="mt-1 text-sm text-gray-500">{selectedConversation.subject || 'Conversation'}</p>
+                </div>
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setHeaderMenuOpen((value) => !value)}
+                    className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:bg-slate-50"
+                    aria-label="Conversation options"
+                  >
+                    <span className="text-lg leading-none">⋮</span>
+                  </button>
+                  {headerMenuOpen && (
+                    <div className="absolute right-0 top-12 z-20 w-52 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg">
+                      <button type="button" onClick={startSelectionMode} className="block w-full px-3 py-2.5 text-left text-sm text-slate-700 hover:bg-slate-50">Select messages</button>
+                      {unreadInThread > 0 && (
+                        <button type="button" onClick={handleMarkConversationRead} className="block w-full px-3 py-2.5 text-left text-sm text-slate-700 hover:bg-slate-50">Mark as read</button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </header>
+
+              {selectionMode && (
+                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 bg-blue-50 px-4 py-3 text-sm text-slate-700">
+                  <span className="font-medium text-blue-700">{selectedThreadItems.length} message{selectedThreadItems.length === 1 ? '' : 's'} selected</span>
+                  <div className="flex flex-wrap items-center gap-2">
+                    {selectedThreadItems.length === 1 && (
+                      <button type="button" onClick={() => {
+                        const item = thread.find((entry) => entry.id === selectedThreadItems[0].id);
+                        if (!item) return;
+                        if (item.senderEmail?.toLowerCase() !== auth?.email?.toLowerCase()) {
+                          return;
+                        }
+                        setEditingMessageId(item.id);
+                        setEditingText(item.message || '');
+                        setSelectionMode(false);
+                        setSelectedMessageIds([]);
+                      }} className="rounded-lg bg-white px-3 py-1.5 font-medium text-slate-700 shadow-sm hover:bg-slate-100">Edit</button>
+                    )}
+                    <button type="button" onClick={handleBulkDelete} className="rounded-lg bg-white px-3 py-1.5 font-medium text-slate-700 shadow-sm hover:bg-slate-100">Delete</button>
+                    <button type="button" onClick={handleBulkRestore} className="rounded-lg bg-white px-3 py-1.5 font-medium text-slate-700 shadow-sm hover:bg-slate-100">Undo</button>
+                    <button type="button" onClick={cancelSelection} className="rounded-lg bg-blue-600 px-3 py-1.5 font-medium text-white shadow-sm hover:bg-blue-700">Cancel</button>
+                  </div>
+                </div>
+              )}
+
+              <div className="flex-1 space-y-3 overflow-y-auto bg-slate-50 p-5">{threadLoading ? <p className="text-sm text-slate-500">Loading conversation...</p> : thread.map((item) => { const mine = item.senderEmail?.toLowerCase() === auth?.email?.toLowerCase(); const deleted = Boolean(item.deleted); const isEditing = editingMessageId === item.id; const isSelected = selectedMessageIds.includes(item.id); return <div key={item.id} className={`flex ${mine ? 'justify-end' : 'justify-start'}`}>
+                <div className="relative max-w-[80%]" onContextMenu={(event) => handleMessageContextMenu(event, item)} onTouchStart={() => { const timer = window.setTimeout(() => handleLongPress(item), 550); return () => window.clearTimeout(timer); }} onTouchEnd={() => window.clearTimeout(window.__onusMessageTimer || 0)}>
+                  {selectionMode && (
+                    <label className="absolute -left-7 top-3 flex h-5 w-5 cursor-pointer items-center justify-center rounded-full border border-slate-300 bg-white shadow-sm">
+                      <input type="checkbox" checked={isSelected} onChange={() => toggleSelection(item.id)} className="hidden" />
+                      {isSelected && <span className="h-2.5 w-2.5 rounded-full bg-blue-600" />}
+                    </label>
+                  )}
+                  <div className={`rounded-2xl px-4 py-3 ${mine ? 'bg-blue-600 text-white' : 'bg-white text-slate-700 shadow-sm'} ${isSelected ? 'ring-2 ring-blue-300' : ''}`}>
+                    {deleted ? (
+                      <div className="text-sm italic text-slate-400">This message was deleted</div>
+                    ) : isEditing ? (
+                      <div className="space-y-2">
+                        <textarea value={editingText} onChange={(event) => setEditingText(event.target.value)} rows={3} className="w-full resize-none rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 outline-none focus:border-blue-500" />
+                        <div className="flex gap-2">
+                          <button type="button" onClick={() => handleEditMessage(item.id)} className="rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white">Save</button>
+                          <button type="button" onClick={() => { setEditingMessageId(null); setEditingText(''); }} className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700">Cancel</button>
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        <p className="whitespace-pre-wrap text-sm leading-6">{item.message}</p>
+                        {Boolean(item.editedAt) && <p className={`mt-1 text-[10px] ${mine ? 'text-blue-100' : 'text-slate-400'}`}>(edited)</p>}
+                      </>
+                    )}
+                  </div>
+                  <div className={`mt-2 flex items-center justify-between gap-3 text-[11px] ${mine ? 'text-blue-100' : 'text-slate-400'}`}>
+                    <span>{item.createdAt ? new Date(item.createdAt).toLocaleString() : ''}</span>
+                  </div>
+                  {mine && !deleted && (
+                    <div className="mt-1 text-right text-[10px] text-slate-600">{item.read ? '✓✓ Seen' : '✓ Sent'}</div>
+                  )}
+                </div>
+              </div> })}</div>
+              <div className="border-t border-gray-100 bg-white p-4"><div className="flex items-end gap-3"><textarea value={replyText} onChange={(event) => setReplyText(event.target.value)} placeholder="Write a reply..." rows={2} className="min-w-0 flex-1 resize-none rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-blue-500" /><button type="button" onClick={sendThreadReply} disabled={replySubmitting || !replyText.trim()} className="rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white disabled:bg-slate-300">{replySubmitting ? 'Sending...' : 'Send'}</button></div></div>
+            </section>
+          </div>
+        </div>
+
+        {contextMenu && (
+          <div
+            className="fixed z-50 w-44 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl"
+            style={{ top: contextMenu.y, left: contextMenu.x }}
+            data-message-menu
+          >
+            <button type="button" onClick={() => { toggleSelection(contextMenu.messageId); setContextMenu(null); }} className="block w-full px-3 py-2.5 text-left text-sm text-slate-700 hover:bg-slate-50">Select</button>
+            {contextMenu.isOwnMessage && !contextMenu.deleted && (
+              <button type="button" onClick={() => {
+                const item = thread.find((entry) => entry.id === contextMenu.messageId);
+                if (!item) return;
+                setEditingMessageId(item.id);
+                setEditingText(item.message || '');
+                setContextMenu(null);
+              }} className="block w-full px-3 py-2.5 text-left text-sm text-slate-700 hover:bg-slate-50">Edit</button>
+            )}
+            <button type="button" onClick={() => { setContextMenu(null); handleDeleteMessage(contextMenu.messageId); }} className="block w-full px-3 py-2.5 text-left text-sm text-slate-700 hover:bg-slate-50">Delete</button>
+            {contextMenu.deleted && (
+              <button type="button" onClick={() => { setContextMenu(null); void handleRestoreMessage(contextMenu.messageId); }} className="block w-full px-3 py-2.5 text-left text-sm text-slate-700 hover:bg-slate-50">Undo</button>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  if (!recipient && conversations.length > 0 && !selectedMessage) {
+    return (
+      <div className="min-h-screen bg-gray-50 px-4 py-8"><div className="mx-auto max-w-5xl"><div className="mb-6"><h1 className="text-2xl font-bold text-gray-900">Messages</h1><p className="mt-1 text-sm text-gray-500">Your conversations</p></div><div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm"><div className="divide-y divide-gray-100">{conversations.map((conversation) => <button key={conversation.conversationId} type="button" onClick={() => openConversation(conversation)} className="flex w-full items-center gap-4 p-5 text-left hover:bg-slate-50"><div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-blue-100 font-bold text-blue-700">{(conversation.otherParticipant || 'U').slice(0, 2).toUpperCase()}</div><div className="min-w-0 flex-1"><div className="flex items-center justify-between gap-3"><p className="truncate font-semibold text-slate-800">{conversation.otherParticipant}</p><span className="text-xs text-slate-400">{conversation.createdAt ? formatDate(conversation.createdAt) : ''}</span></div><p className="mt-1 truncate text-sm text-slate-500">{conversation.subject || 'Conversation'} · {conversation.latestMessage}</p></div>{conversation.unreadCount > 0 && <span className="rounded-full bg-blue-600 px-2 py-1 text-xs font-semibold text-white">{conversation.unreadCount}</span>}</button>)}</div></div></div></div>
     );
   }
 
@@ -515,6 +973,29 @@ function Messages({ auth }) {
               {/* =================================================
                   INTERVIEW DETAILS
               ================================================= */}
+
+              {selectedMessage.replyAllowed && (
+                <div className="mt-6 rounded-2xl border border-blue-100 bg-blue-50/50 p-5">
+                  <h2 className="text-base font-semibold text-gray-900">Reply</h2>
+                  <textarea
+                    value={replyText}
+                    onChange={(event) => setReplyText(event.target.value)}
+                    placeholder="Write your reply to the recruiter..."
+                    rows={5}
+                    className="mt-3 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-blue-500"
+                  />
+                  <div className="mt-3 flex justify-end">
+                    <button
+                      type="button"
+                      onClick={handleReplySubmit}
+                      disabled={replySubmitting || !replyText.trim()}
+                      className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white disabled:cursor-not-allowed disabled:bg-slate-400"
+                    >
+                      {replySubmitting ? "Sending..." : "Send Reply"}
+                    </button>
+                  </div>
+                </div>
+              )}
 
               {(isOnline || isOffline) && (
 

@@ -35,9 +35,11 @@ export default function Login({ auth, onLogin }) {
   useEffect(() => {
     if (auth) {
       navigate(
-        auth.role === 'recruiter'
-          ? '/employer'
-          : '/employee'
+        auth.role === 'admin'
+          ? '/admin'
+          : auth.role === 'recruiter'
+            ? '/employer'
+            : '/employee'
       )
     }
   }, [auth, navigate])
@@ -49,30 +51,39 @@ export default function Login({ auth, onLogin }) {
     setLoading(true)
 
     try {
-      const backendRole =
-        selectedRole === 'recruiter'
-          ? 'recruiter'
-          : 'job-seeker'
-
       const response = await loginUser({
         email: email.trim().toLowerCase(),
         password,
-        role: backendRole,
+        role: selectedRole,
       })
+
+      const decodedToken = (() => {
+        try {
+          const payload = response?.token?.split('.')?.[1]
+          if (!payload) return null
+          return JSON.parse(atob(payload.replace(/-/g, '+').replace(/_/g, '/')))
+        } catch {
+          return null
+        }
+      })()
+
+      const backendRole = (decodedToken?.role || selectedRole || 'job-seeker').toLowerCase()
 
       localStorage.setItem('onus_token', response.token)
 
       onLogin?.({
         email: email.trim().toLowerCase(),
-        role: selectedRole,
+        role: backendRole,
         token: response.token,
       })
 
-      navigate(
-        selectedRole === 'recruiter'
-          ? '/employer'
-          : '/employee'
-      )
+      if (backendRole === 'admin') {
+        navigate('/admin', { replace: true })
+      } else if (backendRole === 'recruiter') {
+        navigate('/employer', { replace: true })
+      } else {
+        navigate('/employee', { replace: true })
+      }
     } catch (err) {
       setError(
         err?.message ||
@@ -109,44 +120,44 @@ export default function Login({ auth, onLogin }) {
         <div className="absolute bottom-[-6rem] left-1/3 h-72 w-72 rounded-full bg-indigo-100/70 blur-3xl" />
       </div>
 
-      <div className="relative z-10 mx-auto max-w-[1280px] px-4 pb-10 pt-4 sm:px-6 lg:px-8">
-        <div className="grid min-h-[calc(100vh-110px)] items-center gap-8 lg:grid-cols-[1.08fr_0.92fr] lg:gap-14">
+      <div className="relative z-10 mx-auto max-w-[1280px] px-3 pb-8 pt-3 sm:px-6 lg:px-8">
+        <div className="grid min-h-[calc(100vh-110px)] items-center gap-6 lg:grid-cols-[1.08fr_0.92fr] lg:gap-14">
           <div className="animate-fade-up flex flex-col justify-center">
-            <div className="mb-8 flex items-center gap-3 text-sm font-medium text-slate-600">
-              <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-blue-100 text-blue-600 shadow-sm ring-1 ring-blue-100">
-                <Sparkles className="h-4 w-4" />
+            <div className="mb-5 flex items-center gap-2.5 text-[0.8rem] font-medium text-slate-600 sm:text-sm">
+              <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-blue-100 text-blue-600 shadow-sm ring-1 ring-blue-100 sm:h-9 sm:w-9">
+                <Sparkles className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
               </span>
               Career platform
             </div>
 
             <div className="max-w-xl">
-              <h1 className="text-4xl font-black leading-[1.02] tracking-[-0.05em] text-slate-900 sm:text-5xl lg:text-[4.1rem]">
+              <h1 className="text-[2.55rem] font-[650] leading-[0.95] tracking-[-0.06em] text-slate-900 sm:text-[3.1rem] lg:text-[4.1rem] lg:font-[700]">
                 Find Your
-                <span className="mt-2 block text-[#2563EB]">
+                <span className="mt-1 block text-[#2563EB] sm:mt-2">
                   Dream Job
                 </span>
               </h1>
 
-              <p className="mt-6 max-w-lg text-base leading-7 text-slate-600 sm:text-lg">
+              <p className="mt-4 max-w-lg text-[1.02rem] leading-6 text-slate-600 sm:mt-5 sm:text-lg sm:leading-7">
                 Discover amazing opportunities from top companies and take the next step in your career with ONUS.
               </p>
             </div>
 
-            <div className="mt-8 space-y-4">
+            <div className="mt-6 space-y-3 sm:mt-7 sm:space-y-4">
               {featureList.map(({ icon: Icon, title, text }) => (
                 <div
                   key={title}
-                  className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white/70 p-3 shadow-[0_12px_30px_rgba(15,23,42,0.04)] backdrop-blur-sm"
+                  className="flex items-center gap-3 rounded-[22px] border border-slate-200 bg-white/75 p-3 shadow-[0_10px_20px_rgba(15,23,42,0.03)] backdrop-blur-sm"
                 >
-                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600 ring-1 ring-blue-100">
-                    <Icon className="h-5 w-5" />
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600 ring-1 ring-blue-100 sm:h-11 sm:w-11">
+                    <Icon className="h-4 w-4 sm:h-5 sm:w-5" />
                   </div>
 
                   <div>
-                    <p className="text-base font-semibold text-slate-900">
+                    <p className="text-[1rem] font-semibold tracking-[-0.02em] text-slate-900 sm:text-[1.05rem]">
                       {title}
                     </p>
-                    <p className="text-sm text-slate-600">
+                    <p className="mt-0.5 text-[0.88rem] font-normal leading-5 text-slate-600 sm:text-sm">
                       {text}
                     </p>
                   </div>
@@ -216,7 +227,7 @@ export default function Login({ auth, onLogin }) {
                 <button
                   type="button"
                   onClick={() => setRole('job-seeker')}
-                  className={`rounded-xl px-3 py-2.5 text-sm font-semibold transition ${
+                  className={`rounded-xl px-2 py-2.5 text-xs font-semibold transition sm:text-sm ${
                     role === 'job-seeker'
                       ? 'bg-white text-slate-900 shadow-sm ring-1 ring-slate-200'
                       : 'text-slate-500 hover:text-slate-700'
@@ -228,7 +239,7 @@ export default function Login({ auth, onLogin }) {
                 <button
                   type="button"
                   onClick={() => setRole('recruiter')}
-                  className={`rounded-xl px-3 py-2.5 text-sm font-semibold transition ${
+                  className={`rounded-xl px-2 py-2.5 text-xs font-semibold transition sm:text-sm ${
                     role === 'recruiter'
                       ? 'bg-white text-slate-900 shadow-sm ring-1 ring-slate-200'
                       : 'text-slate-500 hover:text-slate-700'

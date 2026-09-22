@@ -1,15 +1,37 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Search } from 'lucide-react'
 
-const recruiters = [
-  { slug: 'google', name: 'HR Manager - Google', company: 'Google', bio: 'Hiring talent for Google Cloud team', rating: '4.9/5' },
-  { slug: 'microsoft', name: 'Tech Lead - Microsoft', company: 'Microsoft', bio: 'Recruiting engineers for Azure projects', rating: '4.8/5' },
-  { slug: 'amazon', name: 'HR Specialist - Amazon', company: 'Amazon', bio: 'Dedicated to building Amazon\'s engineering team', rating: '4.9/5' },
-]
+const BASE_URL =
+  import.meta.env.VITE_API_BASE_URL ||
+  'http://localhost:9090'
 
 export default function Recruiters() {
+  const [recruiters, setRecruiters] = useState([])
   const [query, setQuery] = useState('')
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    async function loadRecruiters() {
+      try {
+        const response = await fetch(`${BASE_URL}/api/recruiters`)
+
+        if (!response.ok) {
+          throw new Error('Failed to load recruiters')
+        }
+
+        const data = await response.json()
+        setRecruiters(Array.isArray(data) ? data : [])
+      } catch (error) {
+        console.error('Failed to fetch recruiters:', error)
+        setRecruiters([])
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadRecruiters()
+  }, [])
 
   const filteredRecruiters = useMemo(() => {
     const keyword = query.trim().toLowerCase()
@@ -17,12 +39,12 @@ export default function Recruiters() {
     if (!keyword) return recruiters
 
     return recruiters.filter((recruiter) =>
-      [recruiter.name, recruiter.company, recruiter.bio]
+      [recruiter.name, recruiter.company, recruiter.designation, recruiter.location, recruiter.bio]
         .join(' ')
         .toLowerCase()
         .includes(keyword)
     )
-  }, [query])
+  }, [query, recruiters])
 
   return (
     <section className="bg-bg min-h-screen">
@@ -30,7 +52,7 @@ export default function Recruiters() {
         <div className="mb-8">
           <p className="text-sm uppercase tracking-[0.25em] text-primary">Connect</p>
           <h2 className="mt-3 text-3xl font-semibold text-secondary">Top Recruiters</h2>
-          <p className="mt-2 text-slate-600">Meet and connect with leading recruiters from top companies.</p>
+          <p className="mt-2 text-slate-600">Meet and connect with active recruiters across the platform.</p>
         </div>
 
         <div className="mb-8 rounded-[1.5rem] border border-slate-200 bg-white p-3 shadow-sm sm:p-4">
@@ -46,26 +68,38 @@ export default function Recruiters() {
           </div>
         </div>
 
-        <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-          {filteredRecruiters.map((recruiter, idx) => (
-            <div key={idx} className="rounded-[1.5rem] border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-lg">
-              <div className="mb-4 flex items-center justify-between gap-3">
-                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-lg font-bold text-primary">
-                  {recruiter.name[0]}
+        {loading ? (
+          <div className="rounded-[1.5rem] border border-slate-200 bg-white p-8 text-slate-600 shadow-sm">
+            Loading recruiters...
+          </div>
+        ) : filteredRecruiters.length === 0 ? (
+          <div className="rounded-[1.5rem] border border-slate-200 bg-white p-8 text-slate-600 shadow-sm">
+            No recruiters found.
+          </div>
+        ) : (
+          <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+            {filteredRecruiters.map((recruiter) => (
+              <div key={recruiter.id} className="rounded-[1.5rem] border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-lg">
+                <div className="mb-4 flex items-center justify-between gap-3">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-lg font-bold text-primary">
+                    {recruiter.name?.charAt(0)?.toUpperCase() || 'R'}
+                  </div>
                 </div>
-                <span className="text-sm font-semibold text-yellow-500">⭐ {recruiter.rating}</span>
+
+                <Link to={`/recruiters/${recruiter.id}`} className="block">
+                  <h3 className="text-lg font-semibold text-secondary">{recruiter.name || 'Recruiter'}</h3>
+                </Link>
+                <p className="mt-1 text-sm text-slate-500">{recruiter.company || recruiter.designation || 'Company not specified'}</p>
+                <p className="mt-3 text-sm text-slate-700">{recruiter.designation || 'Recruiter'}</p>
+                <p className="mt-2 text-sm text-slate-500">{recruiter.location || 'Location not specified'}</p>
+
+                <Link to={`/recruiters/${recruiter.id}`} className="mt-4 block w-full rounded-full bg-primary px-4 py-2 text-center text-sm font-semibold text-white transition hover:bg-blue-600">
+                  View Profile
+                </Link>
               </div>
-              <Link to={`/recruiters/${recruiter.slug}`} className="block">
-                <h3 className="text-lg font-semibold text-secondary">{recruiter.name}</h3>
-              </Link>
-              <p className="mt-1 text-sm text-slate-500">{recruiter.company}</p>
-              <p className="mt-3 text-sm text-slate-700">{recruiter.bio}</p>
-              <Link to={`/recruiters/${recruiter.slug}`} className="mt-4 block w-full rounded-full bg-primary px-4 py-2 text-center text-sm font-semibold text-white transition hover:bg-blue-600">
-                View Profile
-              </Link>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
     </section>
   )
